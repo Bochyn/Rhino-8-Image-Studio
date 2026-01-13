@@ -77,7 +77,7 @@ public class RhinoBridge
                 using var imageContent = new ByteArrayContent(imageBytes);
                 imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
                 content.Add(imageContent, "image", "capture.png");
-                content.Add(new StringContent(sessionId), "sessionId");
+                content.Add(new StringContent(sessionId), "projectId");  // Backend expects "projectId"
                 content.Add(new StringContent(width.ToString()), "width");
                 content.Add(new StringContent(height.ToString()), "height");
                 content.Add(new StringContent(displayMode.ToString()), "displayMode");

@@ -1,37 +1,55 @@
 import { Slider } from '@/components/Common/Slider';
 import { Label } from '@/components/Common/Label';
 import { Card } from '@/components/Common/Card';
-import { RotateCw, ArrowUp, Search } from 'lucide-react';
+import { RotateCw, ArrowUp, ZoomIn, Wand2 } from 'lucide-react';
+import { 
+  QwenMultiAngleSettings, 
+  MULTI_ANGLE_PRESETS,
+} from '@/lib/models';
 
 interface MultiAngleSettingsProps {
-  settings: {
-    azimuth: number;
-    elevation: number;
-    zoom: number;
-  };
-  onChange: (settings: { azimuth: number; elevation: number; zoom: number }) => void;
+  settings: QwenMultiAngleSettings;
+  onChange: (settings: QwenMultiAngleSettings) => void;
+  disabled?: boolean;
 }
 
-export function MultiAngleSettings({ settings, onChange }: MultiAngleSettingsProps) {
-  const presets = [
-    { label: 'Front', azimuth: 0, elevation: 0 },
-    { label: 'Side', azimuth: 90, elevation: 0 },
-    { label: 'Back', azimuth: 180, elevation: 0 },
-    { label: 'Top', azimuth: 0, elevation: 60 },
-    { label: '3/4 View', azimuth: 45, elevation: 30 },
-  ];
+export function MultiAngleSettings({ settings, onChange, disabled }: MultiAngleSettingsProps) {
+  const handleChange = <K extends keyof QwenMultiAngleSettings>(key: K, value: QwenMultiAngleSettings[K]) => {
+    onChange({ ...settings, [key]: value });
+  };
 
   return (
     <div className="space-y-4">
       {/* Presets */}
       <div>
-        <Label className="text-xs text-muted-foreground mb-2 block">PRESETS</Label>
-        <div className="flex flex-wrap gap-2">
-          {presets.map((preset) => (
+        <Label className="text-xs text-muted-foreground mb-2 block">CAMERA PRESETS</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {MULTI_ANGLE_PRESETS.slice(0, 4).map((preset) => (
             <button
               key={preset.label}
-              onClick={() => onChange({ ...settings, azimuth: preset.azimuth, elevation: preset.elevation })}
-              className="px-3 py-1.5 text-xs rounded-md bg-muted hover:bg-accent transition-colors"
+              onClick={() => onChange({ 
+                ...settings, 
+                horizontalAngle: preset.horizontalAngle, 
+                verticalAngle: preset.verticalAngle 
+              })}
+              disabled={disabled}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted hover:bg-accent transition-colors"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          {MULTI_ANGLE_PRESETS.slice(4).map((preset) => (
+            <button
+              key={preset.label}
+              onClick={() => onChange({ 
+                ...settings, 
+                horizontalAngle: preset.horizontalAngle, 
+                verticalAngle: preset.verticalAngle 
+              })}
+              disabled={disabled}
+              className="px-2 py-1.5 text-xs rounded-md bg-muted hover:bg-accent transition-colors"
             >
               {preset.label}
             </button>
@@ -39,74 +57,100 @@ export function MultiAngleSettings({ settings, onChange }: MultiAngleSettingsPro
         </div>
       </div>
 
-      {/* Azimuth (Horizontal Angle) */}
+      {/* Horizontal Angle (0-360) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label className="flex items-center gap-2">
             <RotateCw className="h-4 w-4" />
-            Azimuth (Horizontal)
+            Horizontal Angle
           </Label>
-          <span className="text-xs font-mono text-muted-foreground">{settings.azimuth}°</span>
+          <span className="text-xs font-mono text-muted-foreground">{settings.horizontalAngle}°</span>
         </div>
         <Slider
-          value={settings.azimuth}
-          onChange={(value) => onChange({ ...settings, azimuth: value })}
+          value={settings.horizontalAngle}
+          onChange={(value) => handleChange('horizontalAngle', value)}
           min={0}
           max={360}
           step={15}
+          disabled={disabled}
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>Front</span>
-          <span>Right</span>
-          <span>Back</span>
-          <span>Left</span>
-          <span>Front</span>
+          <span>Front (0°)</span>
+          <span>Right (90°)</span>
+          <span>Back (180°)</span>
+          <span>Left (270°)</span>
         </div>
       </div>
 
-      {/* Elevation (Vertical Angle) */}
+      {/* Vertical Angle (-30 to 90) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label className="flex items-center gap-2">
             <ArrowUp className="h-4 w-4" />
-            Elevation (Vertical)
+            Vertical Angle
           </Label>
-          <span className="text-xs font-mono text-muted-foreground">{settings.elevation}°</span>
+          <span className="text-xs font-mono text-muted-foreground">{settings.verticalAngle}°</span>
         </div>
         <Slider
-          value={settings.elevation}
-          onChange={(value) => onChange({ ...settings, elevation: value })}
+          value={settings.verticalAngle}
+          onChange={(value) => handleChange('verticalAngle', value)}
           min={-30}
           max={90}
           step={5}
+          disabled={disabled}
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>Low</span>
-          <span>Eye Level</span>
-          <span>Bird's Eye</span>
+          <span>Low (-30°)</span>
+          <span>Eye Level (0°)</span>
+          <span>Top (90°)</span>
         </div>
       </div>
 
-      {/* Zoom/Distance */}
+      {/* Zoom (0-10) */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Distance
+            <ZoomIn className="h-4 w-4" />
+            Zoom Level
           </Label>
           <span className="text-xs font-mono text-muted-foreground">{settings.zoom}</span>
         </div>
         <Slider
           value={settings.zoom}
-          onChange={(value) => onChange({ ...settings, zoom: value })}
+          onChange={(value) => handleChange('zoom', value)}
           min={0}
           max={10}
           step={1}
+          disabled={disabled}
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
           <span>Wide</span>
           <span>Medium</span>
           <span>Close</span>
+        </div>
+      </div>
+
+      {/* LoRA Scale */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Label className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4" />
+            LoRA Scale
+          </Label>
+          <span className="text-xs font-mono text-muted-foreground">{settings.loraScale.toFixed(2)}</span>
+        </div>
+        <Slider
+          value={settings.loraScale}
+          onChange={(value) => handleChange('loraScale', value)}
+          min={0}
+          max={1}
+          step={0.05}
+          disabled={disabled}
+        />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>Subtle</span>
+          <span>Balanced</span>
+          <span>Strong</span>
         </div>
       </div>
 
@@ -116,7 +160,7 @@ export function MultiAngleSettings({ settings, onChange }: MultiAngleSettingsPro
           <div
             className="w-12 h-12 bg-primary/20 border-2 border-primary rounded-lg"
             style={{
-              transform: `rotateY(${settings.azimuth}deg) rotateX(${-settings.elevation}deg) scale(${1 - settings.zoom * 0.05})`,
+              transform: `rotateY(${settings.horizontalAngle}deg) rotateX(${-settings.verticalAngle}deg) scale(${1 - settings.zoom * 0.05})`,
               transformStyle: 'preserve-3d',
             }}
           />
@@ -124,6 +168,14 @@ export function MultiAngleSettings({ settings, onChange }: MultiAngleSettingsPro
         </div>
         <p className="text-xs text-center text-muted-foreground mt-2">
           Camera position preview
+        </p>
+      </Card>
+
+      {/* Info Card */}
+      <Card className="p-3 bg-muted/50">
+        <p className="text-xs text-muted-foreground">
+          <strong>qwen-multi-angle</strong> generates the same scene from different camera 
+          positions. Perfect for creating consistent multi-view presentations.
         </p>
       </Card>
     </div>

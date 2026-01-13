@@ -1,24 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Session, Capture, Generation } from '@/lib/types';
+import { Project, Capture, Generation } from '@/lib/types';
 import { api } from '@/lib/api';
 
-export function useSession(sessionId: string | null) {
-  const [session, setSession] = useState<Session | null>(null);
+export function useProject(projectId: string | null) {
+  const [project, setProject] = useState<Project | null>(null);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    if (!sessionId) return;
+    if (!projectId) return;
     setIsLoading(true);
     try {
-      const [s, c, g] = await Promise.all([
-        api.sessions.get(sessionId),
-        api.captures.list(sessionId),
-        api.generations.list(sessionId)
+      const [p, c, g] = await Promise.all([
+        api.projects.get(projectId),
+        api.captures.list(projectId),
+        api.generations.list(projectId)
       ]);
-      setSession(s);
+      setProject(p);
       setCaptures(c);
       setGenerations(g);
     } catch (err: any) {
@@ -26,11 +26,11 @@ export function useSession(sessionId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [projectId]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { session, captures, generations, isLoading, error, refresh };
+  return { project, captures, generations, isLoading, error, refresh };
 }

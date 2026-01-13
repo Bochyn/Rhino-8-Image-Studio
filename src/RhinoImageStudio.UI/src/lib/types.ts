@@ -1,4 +1,4 @@
-export interface Session {
+export interface Project {
   id: string;
   name: string;
   createdAt: string;
@@ -9,7 +9,7 @@ export interface Session {
 
 export interface Capture {
   id: string;
-  sessionId: string;
+  projectId: string;
   imageUrl: string; // Backend returns /images/captures/xxx.png
   thumbnailUrl?: string; // Backend returns /images/thumbnails/xxx_thumb.png
   width: number;
@@ -21,7 +21,7 @@ export interface Capture {
 
 export interface Generation {
   id: string;
-  sessionId: string;
+  projectId: string;
   prompt: string;
   negativePrompt?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -33,11 +33,24 @@ export interface Generation {
 
 export interface GenerationSettings {
   aspectRatio: string;
-  resolution: string; // "1024x1024"
-  guidanceScale: number;
-  numInferenceSteps: number;
+  numImages: number;         // 1-4 for nano-banana
+  outputFormat: 'jpeg' | 'png';
   seed?: number;
   model: string;
+}
+
+export interface MultiAngleSettings {
+  horizontalAngle: number;   // 0-360
+  verticalAngle: number;     // -30 to 90
+  zoom: number;              // 0-10
+  loraScale: number;
+}
+
+export interface UpscaleSettings {
+  model: string;             // Topaz model type
+  upscaleFactor: number;     // 1-4
+  faceEnhancement: boolean;
+  outputFormat: 'jpeg' | 'png';
 }
 
 export interface Job {
@@ -48,15 +61,15 @@ export interface Job {
   message?: string;
   result?: any;
   createdAt: string;
-  sessionId: string;
+  projectId: string;
 }
 
-export interface CreateSessionRequest {
+export interface CreateProjectRequest {
   name: string;
 }
 
 export interface GenerateRequest {
-  sessionId: string;
+  projectId: string;
   prompt: string;
   settings: GenerationSettings;
   captureId?: string; // Optional source image
@@ -71,7 +84,7 @@ export interface ViewportInfo {
 }
 
 export interface RhinoBridge {
-  CaptureViewport(sessionId: string, width: number, height: number, displayMode: string): Promise<string>; // Returns captureId
+  CaptureViewport(projectId: string, width: number, height: number, displayMode: string): Promise<string>; // Returns captureId
   GetDisplayModes(): Promise<string[]>;
   GetViewports(): Promise<ViewportInfo[]>;
   GetApiUrl(): Promise<string>;

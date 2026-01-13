@@ -92,13 +92,13 @@ var api = app.MapGroup("/api");
 // --- Health Check ---
 api.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
-// --- Sessions ---
-api.MapGet("/sessions", async (AppDbContext db) =>
+// --- Projects ---
+api.MapGet("/projects", async (AppDbContext db) =>
 {
-    var sessions = await db.Sessions
+    var projects = await db.Projects
         .OrderByDescending(s => s.IsPinned)
         .ThenByDescending(s => s.UpdatedAt)
-        .Select(s => new SessionDto(
+        .Select(s => new ProjectDto(
             s.Id,
             s.Name,
             s.Description,
@@ -111,60 +111,60 @@ api.MapGet("/sessions", async (AppDbContext db) =>
         ))
         .ToListAsync();
 
-    return Results.Ok(new SessionListResponse(sessions, sessions.Count));
+    return Results.Ok(new ProjectListResponse(projects, projects.Count));
 });
 
-api.MapGet("/sessions/{id:guid}", async (Guid id, AppDbContext db) =>
+api.MapGet("/projects/{id:guid}", async (Guid id, AppDbContext db) =>
 {
-    var session = await db.Sessions.FindAsync(id);
-    return session is null ? Results.NotFound() : Results.Ok(session);
+    var project = await db.Projects.FindAsync(id);
+    return project is null ? Results.NotFound() : Results.Ok(project);
 });
 
-api.MapPost("/sessions", async (CreateSessionRequest request, AppDbContext db) =>
+api.MapPost("/projects", async (CreateProjectRequest request, AppDbContext db) =>
 {
-    var session = new Session
+    var project = new Project
     {
         Name = request.Name,
         Description = request.Description
     };
 
-    db.Sessions.Add(session);
+    db.Projects.Add(project);
     await db.SaveChangesAsync();
 
-    return Results.Created($"/api/sessions/{session.Id}", session);
+    return Results.Created($"/api/projects/{project.Id}", project);
 });
 
-api.MapPut("/sessions/{id:guid}", async (Guid id, UpdateSessionRequest request, AppDbContext db) =>
+api.MapPut("/projects/{id:guid}", async (Guid id, UpdateProjectRequest request, AppDbContext db) =>
 {
-    var session = await db.Sessions.FindAsync(id);
-    if (session is null) return Results.NotFound();
+    var project = await db.Projects.FindAsync(id);
+    if (project is null) return Results.NotFound();
 
-    if (request.Name is not null) session.Name = request.Name;
-    if (request.Description is not null) session.Description = request.Description;
-    if (request.IsPinned.HasValue) session.IsPinned = request.IsPinned.Value;
-    session.UpdatedAt = DateTime.UtcNow;
+    if (request.Name is not null) project.Name = request.Name;
+    if (request.Description is not null) project.Description = request.Description;
+    if (request.IsPinned.HasValue) project.IsPinned = request.IsPinned.Value;
+    project.UpdatedAt = DateTime.UtcNow;
 
     await db.SaveChangesAsync();
-    return Results.Ok(session);
+    return Results.Ok(project);
 });
 
-api.MapDelete("/sessions/{id:guid}", async (Guid id, AppDbContext db, IStorageService storage) =>
+api.MapDelete("/projects/{id:guid}", async (Guid id, AppDbContext db, IStorageService storage) =>
 {
-    var session = await db.Sessions
+    var project = await db.Projects
         .Include(s => s.Captures)
         .Include(s => s.Generations)
         .FirstOrDefaultAsync(s => s.Id == id);
 
-    if (session is null) return Results.NotFound();
+    if (project is null) return Results.NotFound();
 
     // Delete files
-    foreach (var capture in session.Captures)
+    foreach (var capture in project.Captures)
     {
         await storage.DeleteFileAsync(capture.FilePath);
         if (capture.ThumbnailPath != null)
             await storage.DeleteFileAsync(capture.ThumbnailPath);
     }
-    foreach (var generation in session.Generations)
+    foreach (var generation in project.Generations)
     {
         if (generation.FilePath != null)
             await storage.DeleteFileAsync(generation.FilePath);
@@ -172,21 +172,21 @@ api.MapDelete("/sessions/{id:guid}", async (Guid id, AppDbContext db, IStorageSe
             await storage.DeleteFileAsync(generation.ThumbnailPath);
     }
 
-    db.Sessions.Remove(session);
+    db.Projects.Remove(project);
     await db.SaveChangesAsync();
 
     return Results.NoContent();
 });
 
 // --- Captures ---
-api.MapGet("/sessions/{sessionId:guid}/captures", async (Guid sessionId, AppDbContext db) =>
+api.MapGet("/projects/{projectId:guid}/captures", async (Guid projectId, AppDbContext db) =>
 {
     var captures = await db.Captures
-        .Where(c => c.SessionId == sessionId)
+        .Where(c => c.ProjectId == projectId)
         .OrderByDescending(c => c.CreatedAt)
         .Select(c => new CaptureDto(
             c.Id,
-            c.SessionId,
+            c.ProjectId,
             $"/images/{c.FilePath}",
             c.ThumbnailPath != null ? $"/images/{c.ThumbnailPath}" : null,
             c.Width,
@@ -205,15 +205,15 @@ api.MapPost("/captures", async (HttpRequest httpRequest, AppDbContext db, IStora
     // Expect multipart form with image and metadata
     var form = await httpRequest.ReadFormAsync();
     var file = form.Files.GetFile("image");
-    var sessionIdStr = form["sessionId"].ToString();
+    var projectIdStr = form["projectId"].ToString();
     var widthStr = form["width"].ToString();
     var heightStr = form["height"].ToString();
     var displayModeStr = form["displayMode"].ToString();
     var viewName = form["viewName"].ToString();
 
-    if (file is null || !Guid.TryParse(sessionIdStr, out var sessionId))
+    if (file is null || !Guid.TryParse(projectIdStr, out var projectId))
     {
-        return Results.BadRequest("Missing image or sessionId");
+        return Results.BadRequest("Missing image or projectId");
     }
 
     using var ms = new MemoryStream();
@@ -222,7 +222,7 @@ api.MapPost("/captures", async (HttpRequest httpRequest, AppDbContext db, IStora
 
     var capture = new Capture
     {
-        SessionId = sessionId,
+        ProjectId = projectId,
         Width = int.TryParse(widthStr, out var w) ? w : 1024,
         Height = int.TryParse(heightStr, out var h) ? h : 1024,
         DisplayMode = Enum.TryParse<DisplayMode>(displayModeStr, out var dm) ? dm : DisplayMode.Shaded,
@@ -235,17 +235,17 @@ api.MapPost("/captures", async (HttpRequest httpRequest, AppDbContext db, IStora
     db.Captures.Add(capture);
     await db.SaveChangesAsync();
 
-    // Update session timestamp
-    var session = await db.Sessions.FindAsync(sessionId);
-    if (session != null)
+    // Update project timestamp
+    var project = await db.Projects.FindAsync(projectId);
+    if (project != null)
     {
-        session.UpdatedAt = DateTime.UtcNow;
+        project.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 
     return Results.Created($"/api/captures/{capture.Id}", new CaptureDto(
         capture.Id,
-        capture.SessionId,
+        capture.ProjectId,
         $"/images/{capture.FilePath}",
         capture.ThumbnailPath != null ? $"/images/{capture.ThumbnailPath}" : null,
         capture.Width,
@@ -257,14 +257,14 @@ api.MapPost("/captures", async (HttpRequest httpRequest, AppDbContext db, IStora
 });
 
 // --- Generations ---
-api.MapGet("/sessions/{sessionId:guid}/generations", async (Guid sessionId, AppDbContext db) =>
+api.MapGet("/projects/{projectId:guid}/generations", async (Guid projectId, AppDbContext db) =>
 {
     var generations = await db.Generations
-        .Where(g => g.SessionId == sessionId)
+        .Where(g => g.ProjectId == projectId)
         .OrderByDescending(g => g.CreatedAt)
         .Select(g => new GenerationDto(
             g.Id,
-            g.SessionId,
+            g.ProjectId,
             g.ParentGenerationId,
             g.SourceCaptureId,
             g.Stage,
@@ -282,6 +282,38 @@ api.MapGet("/sessions/{sessionId:guid}/generations", async (Guid sessionId, AppD
     return Results.Ok(generations);
 });
 
+// Global generations list (for Generations tab on home page)
+api.MapGet("/generations", async (AppDbContext db, int? limit, int? offset) =>
+{
+    var query = db.Generations
+        .Include(g => g.Project)
+        .OrderByDescending(g => g.CreatedAt);
+
+    var total = await query.CountAsync();
+    
+    var generations = await query
+        .Skip(offset ?? 0)
+        .Take(limit ?? 50)
+        .Select(g => new GenerationDto(
+            g.Id,
+            g.ProjectId,
+            g.ParentGenerationId,
+            g.SourceCaptureId,
+            g.Stage,
+            g.Prompt,
+            g.FilePath != null ? $"/images/{g.FilePath}" : null,
+            g.ThumbnailPath != null ? $"/images/{g.ThumbnailPath}" : null,
+            g.Width,
+            g.Height,
+            g.Azimuth,
+            g.Elevation,
+            g.CreatedAt
+        ))
+        .ToListAsync();
+
+    return Results.Ok(new { generations, total });
+});
+
 api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 {
     var generation = await db.Generations.FindAsync(id);
@@ -289,7 +321,7 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 
     return Results.Ok(new GenerationDto(
         generation.Id,
-        generation.SessionId,
+        generation.ProjectId,
         generation.ParentGenerationId,
         generation.SourceCaptureId,
         generation.Stage,
@@ -305,14 +337,14 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 });
 
 // --- Jobs ---
-api.MapGet("/sessions/{sessionId:guid}/jobs", async (Guid sessionId, AppDbContext db) =>
+api.MapGet("/projects/{projectId:guid}/jobs", async (Guid projectId, AppDbContext db) =>
 {
     var jobs = await db.Jobs
-        .Where(j => j.SessionId == sessionId)
+        .Where(j => j.ProjectId == projectId)
         .OrderByDescending(j => j.CreatedAt)
         .Select(j => new JobDto(
             j.Id,
-            j.SessionId,
+            j.ProjectId,
             j.Type,
             j.Status,
             j.Progress,
@@ -342,11 +374,11 @@ api.MapPost("/jobs/{id:guid}/cancel", async (Guid id, AppDbContext db, IFalAiCli
             {
                 var modelId = job.Type switch
                 {
-                    JobType.Generate => FalModels.NanoBananaProEdit,
-                    JobType.Refine => FalModels.NanoBananaProEdit,
+                    JobType.Generate => FalModels.NanoBananaEdit,
+                    JobType.Refine => FalModels.NanoBananaEdit,
                     JobType.MultiAngle => FalModels.QwenMultipleAngles,
-                    JobType.Upscale => FalModels.ClarityUpscaler,
-                    _ => FalModels.NanoBananaProEdit
+                    JobType.Upscale => FalModels.TopazUpscale,
+                    _ => FalModels.NanoBananaEdit
                 };
                 await falClient.CancelAsync(modelId, job.FalRequestId);
             }
@@ -366,7 +398,7 @@ api.MapPost("/generate", async (GenerateRequest request, AppDbContext db, IJobQu
 {
     var job = new Job
     {
-        SessionId = request.SessionId,
+        ProjectId = request.ProjectId,
         Type = JobType.Generate,
         RequestJson = JsonSerializer.Serialize(request)
     };
@@ -376,7 +408,7 @@ api.MapPost("/generate", async (GenerateRequest request, AppDbContext db, IJobQu
     await jobQueue.EnqueueAsync(job);
 
     return Results.Accepted($"/api/jobs/{job.Id}", new JobDto(
-        job.Id, job.SessionId, job.Type, job.Status, job.Progress,
+        job.Id, job.ProjectId, job.Type, job.Status, job.Progress,
         job.ProgressMessage, job.ErrorMessage, job.ResultId,
         job.CreatedAt, job.StartedAt, job.CompletedAt
     ));
@@ -386,7 +418,7 @@ api.MapPost("/refine", async (RefineRequest request, AppDbContext db, IJobQueue 
 {
     var job = new Job
     {
-        SessionId = request.SessionId,
+        ProjectId = request.ProjectId,
         Type = JobType.Refine,
         RequestJson = JsonSerializer.Serialize(request)
     };
@@ -396,7 +428,7 @@ api.MapPost("/refine", async (RefineRequest request, AppDbContext db, IJobQueue 
     await jobQueue.EnqueueAsync(job);
 
     return Results.Accepted($"/api/jobs/{job.Id}", new JobDto(
-        job.Id, job.SessionId, job.Type, job.Status, job.Progress,
+        job.Id, job.ProjectId, job.Type, job.Status, job.Progress,
         job.ProgressMessage, job.ErrorMessage, job.ResultId,
         job.CreatedAt, job.StartedAt, job.CompletedAt
     ));
@@ -406,7 +438,7 @@ api.MapPost("/multi-angle", async (MultiAngleRequest request, AppDbContext db, I
 {
     var job = new Job
     {
-        SessionId = request.SessionId,
+        ProjectId = request.ProjectId,
         Type = JobType.MultiAngle,
         RequestJson = JsonSerializer.Serialize(request)
     };
@@ -416,7 +448,7 @@ api.MapPost("/multi-angle", async (MultiAngleRequest request, AppDbContext db, I
     await jobQueue.EnqueueAsync(job);
 
     return Results.Accepted($"/api/jobs/{job.Id}", new JobDto(
-        job.Id, job.SessionId, job.Type, job.Status, job.Progress,
+        job.Id, job.ProjectId, job.Type, job.Status, job.Progress,
         job.ProgressMessage, job.ErrorMessage, job.ResultId,
         job.CreatedAt, job.StartedAt, job.CompletedAt
     ));
@@ -426,7 +458,7 @@ api.MapPost("/upscale", async (UpscaleRequest request, AppDbContext db, IJobQueu
 {
     var job = new Job
     {
-        SessionId = request.SessionId,
+        ProjectId = request.ProjectId,
         Type = JobType.Upscale,
         RequestJson = JsonSerializer.Serialize(request)
     };
@@ -436,7 +468,7 @@ api.MapPost("/upscale", async (UpscaleRequest request, AppDbContext db, IJobQueu
     await jobQueue.EnqueueAsync(job);
 
     return Results.Accepted($"/api/jobs/{job.Id}", new JobDto(
-        job.Id, job.SessionId, job.Type, job.Status, job.Progress,
+        job.Id, job.ProjectId, job.Type, job.Status, job.Progress,
         job.ProgressMessage, job.ErrorMessage, job.ResultId,
         job.CreatedAt, job.StartedAt, job.CompletedAt
     ));
@@ -470,13 +502,13 @@ api.MapGet("/events", async (IEventBroadcaster broadcaster, HttpContext context,
     }
 });
 
-api.MapGet("/sessions/{sessionId:guid}/events", async (Guid sessionId, IEventBroadcaster broadcaster, HttpContext context, CancellationToken cancellationToken) =>
+api.MapGet("/projects/{projectId:guid}/events", async (Guid projectId, IEventBroadcaster broadcaster, HttpContext context, CancellationToken cancellationToken) =>
 {
     context.Response.ContentType = "text/event-stream";
     context.Response.Headers.CacheControl = "no-cache";
     context.Response.Headers.Connection = "keep-alive";
 
-    await foreach (var evt in broadcaster.SubscribeToSessionAsync(sessionId, cancellationToken))
+    await foreach (var evt in broadcaster.SubscribeToProjectAsync(projectId, cancellationToken))
     {
         var json = JsonSerializer.Serialize(evt);
         await context.Response.WriteAsync($"data: {json}\n\n", cancellationToken);

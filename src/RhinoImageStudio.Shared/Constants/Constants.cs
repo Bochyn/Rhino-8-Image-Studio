@@ -7,25 +7,25 @@ public static class Routes
 {
     public const string ApiBase = "/api";
 
-    // Sessions
-    public const string Sessions = $"{ApiBase}/sessions";
-    public const string SessionById = $"{Sessions}/{{id}}";
+    // Projects
+    public const string Projects = $"{ApiBase}/projects";
+    public const string ProjectById = $"{Projects}/{{id}}";
 
     // Captures
     public const string Captures = $"{ApiBase}/captures";
     public const string CaptureById = $"{Captures}/{{id}}";
-    public const string CapturesBySession = $"{Sessions}/{{sessionId}}/captures";
+    public const string CapturesByProject = $"{Projects}/{{projectId}}/captures";
 
     // Jobs
     public const string Jobs = $"{ApiBase}/jobs";
     public const string JobById = $"{Jobs}/{{id}}";
-    public const string JobsBySession = $"{Sessions}/{{sessionId}}/jobs";
+    public const string JobsByProject = $"{Projects}/{{projectId}}/jobs";
     public const string JobCancel = $"{JobById}/cancel";
 
     // Generations
     public const string Generations = $"{ApiBase}/generations";
     public const string GenerationById = $"{Generations}/{{id}}";
-    public const string GenerationsBySession = $"{Sessions}/{{sessionId}}/generations";
+    public const string GenerationsByProject = $"{Projects}/{{projectId}}/generations";
 
     // Pipeline actions
     public const string Generate = $"{ApiBase}/generate";
@@ -40,7 +40,7 @@ public static class Routes
 
     // Events (SSE)
     public const string Events = $"{ApiBase}/events";
-    public const string EventsBySession = $"{Sessions}/{{sessionId}}/events";
+    public const string EventsByProject = $"{Projects}/{{projectId}}/events";
 
     // Static files (images)
     public const string Images = "/images";
@@ -52,9 +52,15 @@ public static class Routes
 /// </summary>
 public static class FalModels
 {
+    // Generation & Refine
     public const string NanoBananaPro = "fal-ai/nano-banana-pro";
-    public const string NanoBananaProEdit = "fal-ai/nano-banana-pro/edit";
+    public const string NanoBananaEdit = "fal-ai/nano-banana/edit";
+    
+    // Multi-Angle
     public const string QwenMultipleAngles = "fal-ai/qwen-image-edit-2511-multiple-angles";
+    
+    // Upscale
+    public const string TopazUpscale = "fal-ai/topaz/upscale/image";
     public const string ClarityUpscaler = "fal-ai/clarity-upscaler";
     public const string Esrgan = "fal-ai/esrgan";
     public const string CreativeUpscaler = "fal-ai/creative-upscaler";

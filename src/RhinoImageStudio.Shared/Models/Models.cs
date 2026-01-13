@@ -3,9 +3,9 @@ using RhinoImageStudio.Shared.Enums;
 namespace RhinoImageStudio.Shared.Models;
 
 /// <summary>
-/// Represents a work session containing captures, generations, and history
+/// Represents a work project containing captures, generations, and history
 /// </summary>
-public class Session
+public class Project
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = string.Empty;
@@ -25,7 +25,7 @@ public class Session
 public class Capture
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid SessionId { get; set; }
+    public Guid ProjectId { get; set; }
     public string FilePath { get; set; } = string.Empty;
     public string? ThumbnailPath { get; set; }
     public int Width { get; set; }
@@ -40,7 +40,7 @@ public class Capture
     public double? CameraLens { get; set; }
 
     // Navigation
-    public Session? Session { get; set; }
+    public Project? Project { get; set; }
 }
 
 /// <summary>
@@ -49,7 +49,7 @@ public class Capture
 public class Generation
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid SessionId { get; set; }
+    public Guid ProjectId { get; set; }
     public Guid? ParentGenerationId { get; set; }
     public Guid? SourceCaptureId { get; set; }
 
@@ -79,7 +79,7 @@ public class Generation
     public string? ModelId { get; set; }
 
     // Navigation
-    public Session? Session { get; set; }
+    public Project? Project { get; set; }
     public Capture? SourceCapture { get; set; }
     public Generation? ParentGeneration { get; set; }
     public List<Generation> ChildGenerations { get; set; } = new();
@@ -91,7 +91,7 @@ public class Generation
 public class Job
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid SessionId { get; set; }
+    public Guid ProjectId { get; set; }
     public JobType Type { get; set; }
     public JobStatus Status { get; set; } = JobStatus.Queued;
 

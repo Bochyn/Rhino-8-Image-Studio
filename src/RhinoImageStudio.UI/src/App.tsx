@@ -8,6 +8,8 @@ function App() {
       <div className="h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/project/:sessionId" element={<StudioPage />} />
+          {/* Legacy route for backwards compatibility */}
           <Route path="/session/:sessionId" element={<StudioPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

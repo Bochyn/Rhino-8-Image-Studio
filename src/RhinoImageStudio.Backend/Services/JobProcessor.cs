@@ -114,7 +114,7 @@ public class JobProcessor : BackgroundService
     private void BroadcastProgress(Job job, int progress, string? message, Guid? resultId = null)
     {
         var evt = new JobProgressEvent(job.Id, job.Status, progress, message, resultId);
-        _eventBroadcaster.BroadcastToSession(job.SessionId, evt);
+        _eventBroadcaster.BroadcastToProject(job.ProjectId, evt);
     }
 
     private async Task<Guid> ProcessGenerateJobAsync(
@@ -154,19 +154,19 @@ public class JobProcessor : BackgroundService
         BroadcastProgress(job, 20, "Submitting to fal.ai...");
 
         // Submit to fal.ai
-        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaProEdit, falInput, cancellationToken);
+        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
         job.FalRequestId = queueResponse.RequestId;
         dbContext.Jobs.Update(job);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // Poll for completion
-        var result = await PollForResultAsync(job, falClient, FalModels.NanoBananaProEdit, queueResponse.RequestId, cancellationToken);
+        var result = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
 
         BroadcastProgress(job, 90, "Saving result...");
 
         // Download and save result
         var generation = await SaveGenerationResultAsync(
-            job.SessionId,
+            job.ProjectId,
             request.SourceCaptureId,
             null,
             JobType.Generate,
@@ -207,25 +207,25 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 20, "Submitting to fal.ai...");
 
-        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaProEdit, falInput, cancellationToken);
+        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
         job.FalRequestId = queueResponse.RequestId;
 
-        var result = await PollForResultAsync(job, falClient, FalModels.NanoBananaProEdit, queueResponse.RequestId, cancellationToken);
+        var refineResult = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
 
         BroadcastProgress(job, 90, "Saving result...");
 
-        var generation = await SaveGenerationResultAsync(
-            job.SessionId,
+        var refineGeneration = await SaveGenerationResultAsync(
+            job.ProjectId,
             parentGeneration.SourceCaptureId,
             request.ParentGenerationId,
             JobType.Refine,
             request.Prompt,
-            result,
+            refineResult,
             dbContext,
             storage,
             cancellationToken);
 
-        return generation.Id;
+        return refineGeneration.Id;
     }
 
     private async Task<Guid> ProcessMultiAngleJobAsync(
@@ -243,44 +243,45 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        var imageData = await storage.ReadFileAsync(sourceGeneration.FilePath!, cancellationToken);
-        var imageUrl = await falClient.UploadImageAsync(imageData, $"{sourceGeneration.Id}.png", cancellationToken);
+        var maImageData = await storage.ReadFileAsync(sourceGeneration.FilePath!, cancellationToken);
+        var maImageUrl = await falClient.UploadImageAsync(maImageData, $"{sourceGeneration.Id}.png", cancellationToken);
 
-        var falInput = new Dictionary<string, object>
+        var maFalInput = new Dictionary<string, object>
         {
-            ["image_urls"] = new[] { imageUrl },
-            ["horizontal_angle"] = request.Azimuth,
-            ["vertical_angle"] = request.Elevation,
+            ["image_urls"] = new[] { maImageUrl },
+            ["horizontal_angle"] = request.HorizontalAngle,
+            ["vertical_angle"] = request.VerticalAngle,
             ["zoom"] = request.Zoom,
+            ["lora_scale"] = request.LoraScale,
             ["num_images"] = request.NumImages
         };
 
         BroadcastProgress(job, 20, "Submitting to fal.ai...");
 
-        var queueResponse = await falClient.SubmitAsync(FalModels.QwenMultipleAngles, falInput, cancellationToken);
-        job.FalRequestId = queueResponse.RequestId;
+        var maQueueResponse = await falClient.SubmitAsync(FalModels.QwenMultipleAngles, maFalInput, cancellationToken);
+        job.FalRequestId = maQueueResponse.RequestId;
 
-        var result = await PollForResultAsync(job, falClient, FalModels.QwenMultipleAngles, queueResponse.RequestId, cancellationToken);
+        var maResult = await PollForResultAsync(job, falClient, FalModels.QwenMultipleAngles, maQueueResponse.RequestId, cancellationToken);
 
         BroadcastProgress(job, 90, "Saving result...");
 
-        var generation = await SaveGenerationResultAsync(
-            job.SessionId,
+        var maGeneration = await SaveGenerationResultAsync(
+            job.ProjectId,
             sourceGeneration.SourceCaptureId,
             request.SourceGenerationId,
             JobType.MultiAngle,
-            result.Prompt,
-            result,
+            maResult.Prompt,
+            maResult,
             dbContext,
             storage,
             cancellationToken);
 
-        generation.Azimuth = request.Azimuth;
-        generation.Elevation = request.Elevation;
-        generation.Zoom = request.Zoom;
+        maGeneration.Azimuth = request.HorizontalAngle;
+        maGeneration.Elevation = request.VerticalAngle;
+        maGeneration.Zoom = request.Zoom;
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return generation.Id;
+        return maGeneration.Id;
     }
 
     private async Task<Guid> ProcessUpscaleJobAsync(
@@ -298,42 +299,40 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        var imageData = await storage.ReadFileAsync(sourceGeneration.FilePath!, cancellationToken);
-        var imageUrl = await falClient.UploadImageAsync(imageData, $"{sourceGeneration.Id}.png", cancellationToken);
+        var upImageData = await storage.ReadFileAsync(sourceGeneration.FilePath!, cancellationToken);
+        var upImageUrl = await falClient.UploadImageAsync(upImageData, $"{sourceGeneration.Id}.png", cancellationToken);
 
-        var falInput = new Dictionary<string, object>
+        // Build Topaz upscale input
+        var upFalInput = new Dictionary<string, object>
         {
-            ["image_url"] = imageUrl,
+            ["image_url"] = upImageUrl,
             ["upscale_factor"] = request.UpscaleFactor,
-            ["creativity"] = request.Creativity
+            ["model"] = request.Model,
+            ["face_enhancement"] = request.FaceEnhancement,
+            ["output_format"] = request.OutputFormat.ToString().ToLowerInvariant()
         };
-
-        if (!string.IsNullOrEmpty(request.Prompt))
-        {
-            falInput["prompt"] = request.Prompt;
-        }
 
         BroadcastProgress(job, 20, "Submitting to fal.ai...");
 
-        var queueResponse = await falClient.SubmitAsync(FalModels.ClarityUpscaler, falInput, cancellationToken);
-        job.FalRequestId = queueResponse.RequestId;
+        var upQueueResponse = await falClient.SubmitAsync(FalModels.TopazUpscale, upFalInput, cancellationToken);
+        job.FalRequestId = upQueueResponse.RequestId;
 
-        var result = await PollForResultAsync(job, falClient, FalModels.ClarityUpscaler, queueResponse.RequestId, cancellationToken);
+        var upResult = await PollForResultAsync(job, falClient, FalModels.TopazUpscale, upQueueResponse.RequestId, cancellationToken);
 
         BroadcastProgress(job, 90, "Saving result...");
 
-        var generation = await SaveGenerationResultAsync(
-            job.SessionId,
+        var upGeneration = await SaveGenerationResultAsync(
+            job.ProjectId,
             sourceGeneration.SourceCaptureId,
             request.SourceGenerationId,
             JobType.Upscale,
-            request.Prompt,
-            result,
+            null, // Topaz upscaler doesn't use prompt
+            upResult,
             dbContext,
             storage,
             cancellationToken);
 
-        return generation.Id;
+        return upGeneration.Id;
     }
 
     private async Task<FalResultResponse> PollForResultAsync(
@@ -371,7 +370,7 @@ public class JobProcessor : BackgroundService
     }
 
     private async Task<Generation> SaveGenerationResultAsync(
-        Guid sessionId,
+        Guid projectId,
         Guid? sourceCaptureId,
         Guid? parentGenerationId,
         JobType stage,
@@ -393,7 +392,7 @@ public class JobProcessor : BackgroundService
         var generation = new Generation
         {
             Id = Guid.NewGuid(),
-            SessionId = sessionId,
+            ProjectId = projectId,
             SourceCaptureId = sourceCaptureId,
             ParentGenerationId = parentGenerationId,
             Stage = stage,
@@ -404,10 +403,10 @@ public class JobProcessor : BackgroundService
             FalRequestId = result.RequestId,
             ModelId = stage switch
             {
-                JobType.Generate => FalModels.NanoBananaProEdit,
-                JobType.Refine => FalModels.NanoBananaProEdit,
+                JobType.Generate => FalModels.NanoBananaEdit,
+                JobType.Refine => FalModels.NanoBananaEdit,
                 JobType.MultiAngle => FalModels.QwenMultipleAngles,
-                JobType.Upscale => FalModels.ClarityUpscaler,
+                JobType.Upscale => FalModels.TopazUpscale,
                 _ => null
             }
         };

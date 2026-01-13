@@ -6,13 +6,13 @@ import { Label } from '@/components/Common/Label';
 import { api } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 
-interface CreateSessionModalProps {
+interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
 }
 
-export function CreateSessionModal({ isOpen, onClose, onCreated }: CreateSessionModalProps) {
+export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProjectModalProps) {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,10 +23,10 @@ export function CreateSessionModal({ isOpen, onClose, onCreated }: CreateSession
 
     setIsLoading(true);
     try {
-      const session = await api.sessions.create({ name });
+      const project = await api.projects.create({ name });
       onCreated();
       onClose();
-      navigate(`/session/${session.id}`);
+      navigate(`/project/${project.id}`);
     } catch (error) {
       console.error(error);
     } finally {
@@ -35,10 +35,10 @@ export function CreateSessionModal({ isOpen, onClose, onCreated }: CreateSession
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Session">
+    <Modal isOpen={isOpen} onClose={onClose} title="New Project">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Session Name</Label>
+          <Label htmlFor="name">Project Name</Label>
           <Input
             id="name"
             placeholder="e.g. Modern Villa Exterior"
@@ -49,7 +49,7 @@ export function CreateSessionModal({ isOpen, onClose, onCreated }: CreateSession
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" isLoading={isLoading}>Create Session</Button>
+          <Button type="submit" isLoading={isLoading}>Create Project</Button>
         </div>
       </form>
     </Modal>

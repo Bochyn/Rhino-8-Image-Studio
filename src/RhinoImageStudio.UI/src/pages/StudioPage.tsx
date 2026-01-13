@@ -1,40 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Session, Capture, Generation } from '@/lib/types';
+import { Project, Capture, Generation } from '@/lib/types';
 import { useJobs } from '@/hooks/useJobs';
 import { useRhino } from '@/hooks/useRhino';
 import { SourcesPanel } from '@/components/Studio/SourcesPanel';
 import { CanvasPanel } from '@/components/Studio/CanvasPanel';
 import { ControlsPanel } from '@/components/Studio/ControlsPanel';
 import { TimelinePanel } from '@/components/Studio/TimelinePanel';
+import { SettingsModal } from '@/components/Settings/SettingsModal';
 import { Button } from '@/components/Common/Button';
 import { ArrowLeft, Settings, Loader2 } from 'lucide-react';
 
 export function StudioPage() {
-  const { sessionId } = useParams<{ sessionId: string }>();
+  const { sessionId: projectId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { rhino, isAvailable: rhinoAvailable } = useRhino();
   const { jobs, subscribe, unsubscribe } = useJobs();
 
-  const [session, setSession] = useState<Session | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [selectedCapture, setSelectedCapture] = useState<Capture | null>(null);
   const [selectedGeneration, setSelectedGeneration] = useState<Generation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Load session data
+  // Load project data
   const loadData = useCallback(async () => {
-    if (!sessionId) return;
+    if (!projectId) return;
     try {
-      const [sessionData, capturesData, generationsData] = await Promise.all([
-        api.sessions.get(sessionId),
-        api.captures.list(sessionId),
-        api.generations.list(sessionId),
+      const [projectData, capturesData, generationsData] = await Promise.all([
+        api.projects.get(projectId),
+        api.captures.list(projectId),
+        api.generations.list(projectId),
       ]);
-      setSession(sessionData);
+      setProject(projectData);
       setCaptures(capturesData);
       setGenerations(generationsData);
       
@@ -45,11 +47,11 @@ export function StudioPage() {
         setSelectedCapture(capturesData[0]);
       }
     } catch (error) {
-      console.error('Failed to load session data:', error);
+      console.error('Failed to load project data:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId]);
+  }, [projectId]);
 
   useEffect(() => {
     loadData();
@@ -57,10 +59,10 @@ export function StudioPage() {
 
   // Subscribe to SSE events
   useEffect(() => {
-    if (!sessionId) return;
-    subscribe(sessionId);
+    if (!projectId) return;
+    subscribe(projectId);
     return () => unsubscribe();
-  }, [sessionId, subscribe, unsubscribe]);
+  }, [projectId, subscribe, unsubscribe]);
 
   // Reload generations when job completes
   useEffect(() => {
@@ -72,11 +74,11 @@ export function StudioPage() {
 
   // Capture viewport
   const handleCapture = async (width: number, height: number, displayMode: string) => {
-    if (!sessionId || !rhino) return;
+    if (!projectId || !rhino) return;
     
     setIsCapturing(true);
     try {
-      const captureId = await rhino.CaptureViewport(sessionId, width, height, displayMode);
+      const captureId = await rhino.CaptureViewport(projectId, width, height, displayMode);
       if (captureId) {
         await loadData();
         const newCapture = captures.find(c => c.id === captureId);
@@ -91,11 +93,11 @@ export function StudioPage() {
 
   // Generate image
   const handleGenerate = async (prompt: string, settings: any) => {
-    if (!sessionId) return;
+    if (!projectId) return;
     
     try {
       await api.generations.create({
-        sessionId,
+        projectId,
         prompt,
         settings,
         captureId: selectedCapture?.id,
@@ -126,7 +128,7 @@ export function StudioPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-semibold">{session?.name || 'Untitled Session'}</h1>
+            <h1 className="font-semibold">{project?.name || 'Untitled Project'}</h1>
             <p className="text-xs text-muted-foreground">
               {captures.length} captures · {generations.length} generations
             </p>
@@ -136,7 +138,7 @@ export function StudioPage() {
           {!rhinoAvailable && (
             <span className="text-xs text-yellow-500">Rhino bridge not available</span>
           )}
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
             <Settings className="h-5 w-5" />
           </Button>
         </div>
@@ -190,6 +192,12 @@ export function StudioPage() {
           }}
         />
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={showSettings} 
+        onClose={() => setShowSettings(false)} 
+      />
     </div>
   );
 }

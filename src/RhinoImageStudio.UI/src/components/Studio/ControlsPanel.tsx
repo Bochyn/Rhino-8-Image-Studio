@@ -8,11 +8,22 @@ import { UpscaleSettings } from '@/components/Controls/UpscaleSettings';
 import { Card } from '@/components/Common/Card';
 import { cn } from '@/lib/utils';
 import {
+  MODE_MODELS,
+  ModeType,
+  DEFAULT_NANO_BANANA_SETTINGS,
+  DEFAULT_QWEN_SETTINGS,
+  DEFAULT_TOPAZ_SETTINGS,
+  NanoBananaSettings,
+  QwenMultiAngleSettings,
+  TopazUpscaleSettings,
+} from '@/lib/models';
+import {
   Sparkles,
   RefreshCw,
   Move3D,
   ArrowUpCircle,
   Loader2,
+  Cpu,
 } from 'lucide-react';
 
 interface ControlsPanelProps {
@@ -22,51 +33,53 @@ interface ControlsPanelProps {
   jobs: Job[];
 }
 
-type Mode = 'generate' | 'refine' | 'multiangle' | 'upscale';
-
 export function ControlsPanel({
   selectedCapture,
   selectedGeneration,
   onGenerate,
   jobs,
 }: ControlsPanelProps) {
-  const [mode, setMode] = useState<Mode>('generate');
+  const [mode, setMode] = useState<ModeType>('generate');
   const [prompt, setPrompt] = useState('');
-  const [settings, setSettings] = useState({
-    aspectRatio: '1:1',
-    resolution: '1024x1024',
-    guidanceScale: 7.5,
-    numInferenceSteps: 30,
-    model: 'nano-banana-pro',
-  });
-  const [multiAngle, setMultiAngle] = useState({
-    azimuth: 0,
-    elevation: 0,
-    zoom: 5,
-  });
-  const [upscale, setUpscale] = useState({
-    factor: 2,
-    creativity: 0.35,
-  });
+  
+  // Model-specific settings states
+  const [nanoBananaSettings, setNanoBananaSettings] = useState<NanoBananaSettings>(DEFAULT_NANO_BANANA_SETTINGS);
+  const [qwenSettings, setQwenSettings] = useState<QwenMultiAngleSettings>(DEFAULT_QWEN_SETTINGS);
+  const [topazSettings, setTopazSettings] = useState<TopazUpscaleSettings>(DEFAULT_TOPAZ_SETTINGS);
 
   const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'queued');
   const isProcessing = activeJobs.length > 0;
 
+  // Get current model info for selected mode
+  const currentModel = MODE_MODELS[mode];
+
   const handleSubmit = () => {
+    const modelId = currentModel.id;
+    
     if (mode === 'generate' || mode === 'refine') {
-      onGenerate(prompt, settings);
+      onGenerate(prompt, {
+        modelId,
+        ...nanoBananaSettings,
+      });
+    } else if (mode === 'multiangle') {
+      onGenerate('', {
+        modelId,
+        ...qwenSettings,
+      });
+    } else if (mode === 'upscale') {
+      onGenerate('', {
+        modelId,
+        ...topazSettings,
+      });
     }
-    // Other modes would call different API endpoints
   };
 
-  const modes: { id: Mode; label: string; icon: React.ReactNode; description: string }[] = [
-    { id: 'generate', label: 'Generate', icon: <Sparkles className="h-4 w-4" />, description: 'Create from prompt + capture' },
-    { id: 'refine', label: 'Refine', icon: <RefreshCw className="h-4 w-4" />, description: 'Iterate on previous result' },
-    { id: 'multiangle', label: 'Multi-Angle', icon: <Move3D className="h-4 w-4" />, description: 'Generate different views' },
-    { id: 'upscale', label: 'Upscale', icon: <ArrowUpCircle className="h-4 w-4" />, description: 'Enhance resolution' },
+  const modes: { id: ModeType; label: string; icon: React.ReactNode }[] = [
+    { id: 'generate', label: 'Generate', icon: <Sparkles className="h-4 w-4" /> },
+    { id: 'refine', label: 'Refine', icon: <RefreshCw className="h-4 w-4" /> },
+    { id: 'multiangle', label: 'Multi-Angle', icon: <Move3D className="h-4 w-4" /> },
+    { id: 'upscale', label: 'Upscale', icon: <ArrowUpCircle className="h-4 w-4" /> },
   ];
-
-  const currentMode = modes.find(m => m.id === mode)!;
 
   return (
     <div className="flex flex-col h-full">
@@ -89,9 +102,13 @@ export function ControlsPanel({
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          {currentMode.description}
-        </p>
+        
+        {/* Current Model Indicator */}
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Cpu className="h-3 w-3" />
+          <span>Model: </span>
+          <span className="font-medium text-foreground">{currentModel.shortName}</span>
+        </div>
       </div>
 
       {/* Controls based on mode */}
@@ -110,7 +127,7 @@ export function ControlsPanel({
           </Card>
         )}
 
-        {/* Generate / Refine Mode */}
+        {/* Generate / Refine Mode (nano-banana/edit) */}
         {(mode === 'generate' || mode === 'refine') && (
           <>
             <PromptInput
@@ -123,25 +140,25 @@ export function ControlsPanel({
               }
             />
             <GenerationSettings
-              settings={settings}
-              onChange={setSettings}
+              settings={nanoBananaSettings}
+              onChange={setNanoBananaSettings}
             />
           </>
         )}
 
-        {/* Multi-Angle Mode */}
+        {/* Multi-Angle Mode (qwen) */}
         {mode === 'multiangle' && (
           <MultiAngleSettings
-            settings={multiAngle}
-            onChange={setMultiAngle}
+            settings={qwenSettings}
+            onChange={setQwenSettings}
           />
         )}
 
-        {/* Upscale Mode */}
+        {/* Upscale Mode (topaz) */}
         {mode === 'upscale' && (
           <UpscaleSettings
-            settings={upscale}
-            onChange={setUpscale}
+            settings={topazSettings}
+            onChange={setTopazSettings}
           />
         )}
 
@@ -186,8 +203,8 @@ export function ControlsPanel({
             </>
           ) : (
             <>
-              {currentMode.icon}
-              <span className="ml-2">{currentMode.label}</span>
+              {modes.find(m => m.id === mode)?.icon}
+              <span className="ml-2">{modes.find(m => m.id === mode)?.label}</span>
             </>
           )}
         </Button>

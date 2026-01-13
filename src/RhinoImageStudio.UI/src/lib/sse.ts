@@ -55,19 +55,19 @@ export class SSEClient {
 
 export const sse = new SSEClient();
 
-export function useJobEvents(sessionId: string | null, onJobUpdate: (job: Job) => void) {
+export function useJobEvents(projectId: string | null, onJobUpdate: (job: Job) => void) {
   useEffect(() => {
-    if (!sessionId) return;
+    if (!projectId) return;
     
-    // Connect to global events or session specific events
-    // For now, assuming global events endpoint handles session filtering or we just filter client side
+    // Connect to global events or project specific events
+    // For now, assuming global events endpoint handles project filtering or we just filter client side
     // Or we connect to /api/events
     sse.connect('/api/events');
 
     const handler = (event: MessageEvent) => {
       try {
         const job: Job = JSON.parse(event.data);
-        if (job.sessionId === sessionId) {
+        if (job.projectId === projectId) {
           onJobUpdate(job);
         }
       } catch (e) {
@@ -80,5 +80,5 @@ export function useJobEvents(sessionId: string | null, onJobUpdate: (job: Job) =
     return () => {
       sse.off('job-update', handler);
     };
-  }, [sessionId, onJobUpdate]);
+  }, [projectId, onJobUpdate]);
 }
