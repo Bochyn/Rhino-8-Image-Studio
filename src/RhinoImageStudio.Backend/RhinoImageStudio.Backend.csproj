@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>RhinoImageStudio.Backend</RootNamespace>
+    <AssemblyName>RhinoImageStudio.Backend</AssemblyName>
+    <Description>Local backend API for Rhino Image Studio - fal.ai proxy, job queue, storage</Description>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Entity Framework Core + SQLite -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- API Documentation -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+
+    <!-- HTTP Client for fal.ai -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+
+    <!-- Data Protection (DPAPI for secrets) -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.11" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RhinoImageStudio.Shared\RhinoImageStudio.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- Embed UI dist files as static content -->
+  <ItemGroup>
+    <Content Include="..\RhinoImageStudio.UI\dist\**\*" CopyToOutputDirectory="PreserveNewest" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" Condition="Exists('..\RhinoImageStudio.UI\dist')" />
+  </ItemGroup>
+
+</Project>

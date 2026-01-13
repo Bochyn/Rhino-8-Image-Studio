@@ -1,0 +1,135 @@
+namespace RhinoImageStudio.Backend.Services;
+
+/// <summary>
+/// Service for managing file storage (images, thumbnails, exports)
+/// </summary>
+public interface IStorageService
+{
+    string BasePath { get; }
+    string CapturesPath { get; }
+    string GenerationsPath { get; }
+    string ThumbnailsPath { get; }
+    string ExportsPath { get; }
+    string TempPath { get; }
+
+    Task<string> SaveCaptureAsync(Guid captureId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default);
+    Task<string> SaveGenerationAsync(Guid generationId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default);
+    Task<string> SaveThumbnailAsync(Guid id, byte[] imageData, CancellationToken cancellationToken = default);
+    Task<byte[]> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
+    Task DeleteFileAsync(string relativePath, CancellationToken cancellationToken = default);
+    string GetAbsolutePath(string relativePath);
+    string GetRelativePath(string absolutePath);
+}
+
+public class StorageService : IStorageService
+{
+    private readonly ILogger<StorageService> _logger;
+
+    public string BasePath { get; }
+    public string CapturesPath => Path.Combine(BasePath, "captures");
+    public string GenerationsPath => Path.Combine(BasePath, "generations");
+    public string ThumbnailsPath => Path.Combine(BasePath, "thumbnails");
+    public string ExportsPath => Path.Combine(BasePath, "exports");
+    public string TempPath => Path.Combine(BasePath, "temp");
+
+    public StorageService(ILogger<StorageService> logger, string? basePath = null)
+    {
+        _logger = logger;
+        BasePath = basePath ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "RhinoImageStudio",
+            "data"
+        );
+
+        // Ensure all directories exist
+        EnsureDirectoriesExist();
+    }
+
+    private void EnsureDirectoriesExist()
+    {
+        Directory.CreateDirectory(CapturesPath);
+        Directory.CreateDirectory(GenerationsPath);
+        Directory.CreateDirectory(ThumbnailsPath);
+        Directory.CreateDirectory(ExportsPath);
+        Directory.CreateDirectory(TempPath);
+
+        _logger.LogInformation("Storage initialized at: {BasePath}", BasePath);
+    }
+
+    public async Task<string> SaveCaptureAsync(Guid captureId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default)
+    {
+        var fileName = $"{captureId}.{format}";
+        var relativePath = Path.Combine("captures", fileName);
+        var absolutePath = Path.Combine(CapturesPath, fileName);
+
+        await File.WriteAllBytesAsync(absolutePath, imageData, cancellationToken);
+        _logger.LogDebug("Capture saved: {Path}", relativePath);
+
+        return relativePath;
+    }
+
+    public async Task<string> SaveGenerationAsync(Guid generationId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default)
+    {
+        var fileName = $"{generationId}.{format}";
+        var relativePath = Path.Combine("generations", fileName);
+        var absolutePath = Path.Combine(GenerationsPath, fileName);
+
+        await File.WriteAllBytesAsync(absolutePath, imageData, cancellationToken);
+        _logger.LogDebug("Generation saved: {Path}", relativePath);
+
+        return relativePath;
+    }
+
+    public async Task<string> SaveThumbnailAsync(Guid id, byte[] imageData, CancellationToken cancellationToken = default)
+    {
+        var fileName = $"{id}_thumb.png";
+        var relativePath = Path.Combine("thumbnails", fileName);
+        var absolutePath = Path.Combine(ThumbnailsPath, fileName);
+
+        await File.WriteAllBytesAsync(absolutePath, imageData, cancellationToken);
+        _logger.LogDebug("Thumbnail saved: {Path}", relativePath);
+
+        return relativePath;
+    }
+
+    public async Task<byte[]> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
+    {
+        var absolutePath = GetAbsolutePath(relativePath);
+
+        if (!File.Exists(absolutePath))
+        {
+            throw new FileNotFoundException($"File not found: {relativePath}");
+        }
+
+        return await File.ReadAllBytesAsync(absolutePath, cancellationToken);
+    }
+
+    public Task DeleteFileAsync(string relativePath, CancellationToken cancellationToken = default)
+    {
+        var absolutePath = GetAbsolutePath(relativePath);
+
+        if (File.Exists(absolutePath))
+        {
+            File.Delete(absolutePath);
+            _logger.LogDebug("File deleted: {Path}", relativePath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public string GetAbsolutePath(string relativePath)
+    {
+        // Normalize path separators for Windows compatibility (URL uses /, Windows uses \)
+        var normalizedPath = relativePath.Replace('/', Path.DirectorySeparatorChar);
+        return Path.Combine(BasePath, normalizedPath);
+    }
+
+    public string GetRelativePath(string absolutePath)
+    {
+        if (absolutePath.StartsWith(BasePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return absolutePath.Substring(BasePath.Length).TrimStart(Path.DirectorySeparatorChar);
+        }
+        return absolutePath;
+    }
+}

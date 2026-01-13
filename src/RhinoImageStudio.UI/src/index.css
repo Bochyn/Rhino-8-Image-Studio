@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light mode - using Gray 50-200 range for backgrounds, 900 for text */
+    --background: 210 20% 98%; /* gray-50 */
+    --foreground: 221 39% 11%; /* gray-900 */
+
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 221 39% 11%; /* gray-900 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+
+    --primary: 221 39% 11%; /* gray-900 */
+    --primary-foreground: 210 20% 98%; /* gray-50 */
+
+    --secondary: 220 14% 96%; /* gray-100 */
+    --secondary-foreground: 221 39% 11%;
+
+    --muted: 220 14% 96%; /* gray-100 */
+    --muted-foreground: 215 14% 34%; /* gray-600 */
+
+    --accent: 220 14% 96%; /* gray-100 */
+    --accent-foreground: 221 39% 11%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 91%; /* gray-200 */
+    --input: 220 13% 91%; /* gray-200 */
+    --ring: 221 39% 11%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark mode - using Gray 700-900 range for backgrounds */
+    --background: 221 39% 11%; /* gray-900 */
+    --foreground: 220 13% 91%; /* gray-200 */
+
+    --card: 215 28% 17%; /* gray-800 */
+    --card-foreground: 220 13% 91%; /* gray-200 */
+
+    --popover: 215 28% 17%; /* gray-800 */
+    --popover-foreground: 220 13% 91%; /* gray-200 */
+
+    --primary: 220 14% 96%; /* gray-100 */
+    --primary-foreground: 221 39% 11%; /* gray-900 */
+
+    --secondary: 217 19% 27%; /* gray-700 */
+    --secondary-foreground: 220 13% 91%; /* gray-200 */
+
+    --muted: 217 19% 27%; /* gray-700 */
+    --muted-foreground: 215 14% 34%; /* gray-600 - per requirement for muted text */
+
+    --accent: 217 19% 27%; /* gray-700 */
+    --accent-foreground: 220 13% 91%; /* gray-200 */
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 19% 27%; /* gray-700 - per requirement */
+    --input: 217 19% 27%; /* gray-700 */
+    --ring: 217 19% 27%; /* gray-700 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-muted/50;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+}

@@ -1,0 +1,98 @@
+using Microsoft.EntityFrameworkCore;
+using RhinoImageStudio.Shared.Models;
+
+namespace RhinoImageStudio.Backend.Data;
+
+/// <summary>
+/// Entity Framework Core database context for Rhino Image Studio
+/// </summary>
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<Capture> Captures => Set<Capture>();
+    public DbSet<Generation> Generations => Set<Generation>();
+    public DbSet<Job> Jobs => Set<Job>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Session
+        modelBuilder.Entity<Session>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.IsPinned);
+        });
+
+        // Capture
+        modelBuilder.Entity<Capture>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.ThumbnailPath).HasMaxLength(500);
+            entity.Property(e => e.ViewName).HasMaxLength(100);
+            entity.Property(e => e.CameraPosition).HasMaxLength(100);
+            entity.Property(e => e.CameraTarget).HasMaxLength(100);
+
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.Captures)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Generation
+        modelBuilder.Entity<Generation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Prompt).HasMaxLength(2000);
+            entity.Property(e => e.NegativePrompt).HasMaxLength(1000);
+            entity.Property(e => e.FilePath).HasMaxLength(500);
+            entity.Property(e => e.ThumbnailPath).HasMaxLength(500);
+            entity.Property(e => e.FalRequestId).HasMaxLength(100);
+            entity.Property(e => e.ModelId).HasMaxLength(100);
+
+            entity.HasOne(e => e.Session)
+                .WithMany(s => s.Generations)
+                .HasForeignKey(e => e.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SourceCapture)
+                .WithMany()
+                .HasForeignKey(e => e.SourceCaptureId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ParentGeneration)
+                .WithMany(g => g.ChildGenerations)
+                .HasForeignKey(e => e.ParentGenerationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.ParentGenerationId);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // Job
+        modelBuilder.Entity<Job>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.RequestJson).IsRequired();
+            entity.Property(e => e.ProgressMessage).HasMaxLength(500);
+            entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+            entity.Property(e => e.FalRequestId).HasMaxLength(100);
+
+            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+        });
+    }
+}
