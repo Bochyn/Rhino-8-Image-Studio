@@ -103,10 +103,6 @@ logs/
 *.db-shm
 *.db-wal
 
-# Journal (keep directory but not content)
-_journal/*.md
-!_journal/.gitkeep
-
 # Test Results
 TestResults/
 *.trx
