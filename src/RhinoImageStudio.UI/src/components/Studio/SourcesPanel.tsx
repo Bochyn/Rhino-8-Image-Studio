@@ -15,6 +15,9 @@ interface SourcesPanelProps {
   rhinoAvailable: boolean;
 }
 
+// Default capture resolution - model-specific resolution is handled in ControlsPanel
+const DEFAULT_CAPTURE_SIZE = 1024;
+
 export function SourcesPanel({
   captures,
   selectedCapture,
@@ -23,12 +26,10 @@ export function SourcesPanel({
   isCapturing,
   rhinoAvailable,
 }: SourcesPanelProps) {
-  const [captureWidth, setCaptureWidth] = useState(1024);
-  const [captureHeight, setCaptureHeight] = useState(1024);
   const [displayMode, setDisplayMode] = useState('Shaded');
 
   const handleCapture = () => {
-    onCapture(captureWidth, captureHeight, displayMode);
+    onCapture(DEFAULT_CAPTURE_SIZE, DEFAULT_CAPTURE_SIZE, displayMode);
   };
 
   return (
@@ -41,11 +42,7 @@ export function SourcesPanel({
         </h3>
         
         <CaptureSettings
-          width={captureWidth}
-          height={captureHeight}
           displayMode={displayMode}
-          onWidthChange={setCaptureWidth}
-          onHeightChange={setCaptureHeight}
           onDisplayModeChange={setDisplayMode}
         />
 
@@ -111,7 +108,7 @@ export function SourcesPanel({
                       {capture.viewName || `Mode ${capture.displayMode}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {capture.width}×{capture.height}
+                      {capture.width}x{capture.height}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {capture.createdAt ? new Date(capture.createdAt).toLocaleTimeString() : ''}

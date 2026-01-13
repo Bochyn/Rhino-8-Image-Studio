@@ -10,15 +10,15 @@ namespace RhinoImageStudio.Backend.Services;
 public interface IEventBroadcaster
 {
     void Broadcast(JobProgressEvent progressEvent);
-    void BroadcastToSession(Guid sessionId, JobProgressEvent progressEvent);
+    void BroadcastToProject(Guid projectId, JobProgressEvent progressEvent);
     IAsyncEnumerable<JobProgressEvent> SubscribeAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<JobProgressEvent> SubscribeToSessionAsync(Guid sessionId, CancellationToken cancellationToken);
+    IAsyncEnumerable<JobProgressEvent> SubscribeToProjectAsync(Guid projectId, CancellationToken cancellationToken);
 }
 
 public class EventBroadcaster : IEventBroadcaster
 {
     private readonly Channel<JobProgressEvent> _globalChannel;
-    private readonly Dictionary<Guid, Channel<JobProgressEvent>> _sessionChannels = new();
+    private readonly Dictionary<Guid, Channel<JobProgressEvent>> _projectChannels = new();
     private readonly object _lock = new();
 
     public EventBroadcaster()
@@ -35,15 +35,15 @@ public class EventBroadcaster : IEventBroadcaster
         _globalChannel.Writer.TryWrite(progressEvent);
     }
 
-    public void BroadcastToSession(Guid sessionId, JobProgressEvent progressEvent)
+    public void BroadcastToProject(Guid projectId, JobProgressEvent progressEvent)
     {
         // Broadcast to global channel
         Broadcast(progressEvent);
 
-        // Also broadcast to session-specific channel if exists
+        // Also broadcast to project-specific channel if exists
         lock (_lock)
         {
-            if (_sessionChannels.TryGetValue(sessionId, out var channel))
+            if (_projectChannels.TryGetValue(projectId, out var channel))
             {
                 channel.Writer.TryWrite(progressEvent);
             }
@@ -59,18 +59,18 @@ public class EventBroadcaster : IEventBroadcaster
         }
     }
 
-    public async IAsyncEnumerable<JobProgressEvent> SubscribeToSessionAsync(
-        Guid sessionId,
+    public async IAsyncEnumerable<JobProgressEvent> SubscribeToProjectAsync(
+        Guid projectId,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         Channel<JobProgressEvent> channel;
 
         lock (_lock)
         {
-            if (!_sessionChannels.TryGetValue(sessionId, out channel!))
+            if (!_projectChannels.TryGetValue(projectId, out channel!))
             {
                 channel = Channel.CreateUnbounded<JobProgressEvent>();
-                _sessionChannels[sessionId] = channel;
+                _projectChannels[projectId] = channel;
             }
         }
 
@@ -87,7 +87,7 @@ public class EventBroadcaster : IEventBroadcaster
             lock (_lock)
             {
                 // Only remove if no other readers (simplified - in production use ref counting)
-                _sessionChannels.Remove(sessionId);
+                _projectChannels.Remove(projectId);
             }
         }
     }

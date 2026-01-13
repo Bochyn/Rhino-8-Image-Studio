@@ -1,70 +1,115 @@
 import { Label } from '@/components/Common/Label';
-import { Slider } from '@/components/Common/Slider';
-import { GenerationSettings as IGenerationSettings } from '@/lib/types';
+import { Card } from '@/components/Common/Card';
+import { 
+  NanoBananaSettings, 
+  ASPECT_RATIOS, 
+  OUTPUT_FORMATS,
+  getResolutionFromAspectRatio,
+} from '@/lib/models';
+import { cn } from '@/lib/utils';
+import { RatioIcon, ImageIcon, FileImage } from 'lucide-react';
 
 interface GenerationSettingsProps {
-  settings: IGenerationSettings;
-  onChange: (settings: IGenerationSettings) => void;
+  settings: NanoBananaSettings;
+  onChange: (settings: NanoBananaSettings) => void;
   disabled?: boolean;
 }
 
 export function GenerationSettings({ settings, onChange, disabled }: GenerationSettingsProps) {
-  const handleChange = (key: keyof IGenerationSettings, value: any) => {
+  const handleChange = <K extends keyof NanoBananaSettings>(key: K, value: NanoBananaSettings[K]) => {
     onChange({ ...settings, [key]: value });
   };
 
+  // Calculate preview resolution from aspect ratio
+  const resolution = getResolutionFromAspectRatio(settings.aspectRatio);
+
   return (
     <div className="space-y-6">
+      {/* Aspect Ratio */}
       <div className="space-y-2">
-        <Label>Resolution</Label>
-        <select
-          className="w-full h-9 rounded-md border bg-background px-3 py-1 text-sm shadow-sm"
-          value={settings.resolution}
-          onChange={(e) => handleChange('resolution', e.target.value)}
-          disabled={disabled}
-        >
-          <option value="1024x1024">Square (1024x1024)</option>
-          <option value="1216x832">Landscape (1216x832)</option>
-          <option value="832x1216">Portrait (832x1216)</option>
-          <option value="1536x640">Widescreen (1536x640)</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <RatioIcon className="h-4 w-4 text-muted-foreground" />
+          <Label>Aspect Ratio</Label>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {ASPECT_RATIOS.slice(0, 9).map((ar) => (
+            <button
+              key={ar.value}
+              onClick={() => handleChange('aspectRatio', ar.value)}
+              disabled={disabled}
+              className={cn(
+                'px-2 py-2 text-xs rounded-md border transition-all',
+                settings.aspectRatio === ar.value
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-muted hover:border-primary/50 text-muted-foreground'
+              )}
+            >
+              {ar.value === 'auto' ? 'Auto' : ar.value}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Output: {resolution.width} × {resolution.height}px
+        </p>
       </div>
 
-      <Slider
-        label="Guidance Scale"
-        value={settings.guidanceScale}
-        min={1}
-        max={20}
-        step={0.5}
-        onChange={(val) => handleChange('guidanceScale', val)}
-        disabled={disabled}
-        suffix=""
-      />
-
-      <Slider
-        label="Inference Steps"
-        value={settings.numInferenceSteps}
-        min={10}
-        max={100}
-        step={1}
-        onChange={(val) => handleChange('numInferenceSteps', val)}
-        disabled={disabled}
-        suffix=""
-      />
+      {/* Number of Images */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+          <Label>Number of Images</Label>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((num) => (
+            <button
+              key={num}
+              onClick={() => handleChange('numImages', num)}
+              disabled={disabled}
+              className={cn(
+                'p-3 rounded-lg border-2 transition-all',
+                settings.numImages === num
+                  ? 'border-primary bg-primary/10'
+                  : 'border-muted hover:border-primary/50'
+              )}
+            >
+              <div className="text-lg font-bold text-center">{num}</div>
+            </button>
+          ))}
+        </div>
+      </div>
       
+      {/* Output Format */}
       <div className="space-y-2">
-        <Label>Model</Label>
-        <select
-          className="w-full h-9 rounded-md border bg-background px-3 py-1 text-sm shadow-sm"
-          value={settings.model}
-          onChange={(e) => handleChange('model', e.target.value)}
-          disabled={disabled}
-        >
-          <option value="stable-diffusion-xl-v1-0">SDXL 1.0</option>
-          <option value="stable-diffusion-v1-5">SD 1.5</option>
-          <option value="kandinsky-2-2">Kandinsky 2.2</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <FileImage className="h-4 w-4 text-muted-foreground" />
+          <Label>Output Format</Label>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {OUTPUT_FORMATS.map((format) => (
+            <button
+              key={format.value}
+              onClick={() => handleChange('outputFormat', format.value)}
+              disabled={disabled}
+              className={cn(
+                'px-3 py-2 text-sm rounded-md border transition-all',
+                settings.outputFormat === format.value
+                  ? 'border-primary bg-primary/10 text-foreground font-medium'
+                  : 'border-muted hover:border-primary/50 text-muted-foreground'
+              )}
+            >
+              {format.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Info Card */}
+      <Card className="p-3 bg-muted/50">
+        <p className="text-xs text-muted-foreground">
+          <strong>nano-banana/edit</strong> uses your prompt and source image to generate 
+          creative variations. Higher image count means more options but longer processing time.
+        </p>
+      </Card>
     </div>
   );
 }

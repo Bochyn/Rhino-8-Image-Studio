@@ -12,7 +12,7 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<Project> Projects => Set<Project>();
     public DbSet<Capture> Captures => Set<Capture>();
     public DbSet<Generation> Generations => Set<Generation>();
     public DbSet<Job> Jobs => Set<Job>();
@@ -21,8 +21,8 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Session
-        modelBuilder.Entity<Session>(entity =>
+        // Project
+        modelBuilder.Entity<Project>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(255);
@@ -41,12 +41,12 @@ public class AppDbContext : DbContext
             entity.Property(e => e.CameraPosition).HasMaxLength(100);
             entity.Property(e => e.CameraTarget).HasMaxLength(100);
 
-            entity.HasOne(e => e.Session)
+            entity.HasOne(e => e.Project)
                 .WithMany(s => s.Captures)
-                .HasForeignKey(e => e.SessionId)
+                .HasForeignKey(e => e.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.CreatedAt);
         });
 
@@ -61,9 +61,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.FalRequestId).HasMaxLength(100);
             entity.Property(e => e.ModelId).HasMaxLength(100);
 
-            entity.HasOne(e => e.Session)
+            entity.HasOne(e => e.Project)
                 .WithMany(s => s.Generations)
-                .HasForeignKey(e => e.SessionId)
+                .HasForeignKey(e => e.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.SourceCapture)
@@ -76,7 +76,7 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.ParentGenerationId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.ParentGenerationId);
             entity.HasIndex(e => e.CreatedAt);
         });
@@ -90,7 +90,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
             entity.Property(e => e.FalRequestId).HasMaxLength(100);
 
-            entity.HasIndex(e => e.SessionId);
+            entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CreatedAt);
         });

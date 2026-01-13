@@ -4,7 +4,7 @@ import { Job } from '@/lib/types';
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const currentSessionIdRef = useRef<string | null>(null);
+  const currentProjectIdRef = useRef<string | null>(null);
 
   const handleJobUpdate = useCallback((event: MessageEvent) => {
     try {
@@ -23,9 +23,9 @@ export function useJobs() {
     }
   }, []);
 
-  const subscribe = useCallback((sessionId: string) => {
-    // Don't reconnect if already connected to same session
-    if (currentSessionIdRef.current === sessionId && eventSourceRef.current) {
+  const subscribe = useCallback((projectId: string) => {
+    // Don't reconnect if already connected to same project
+    if (currentProjectIdRef.current === projectId && eventSourceRef.current) {
       return;
     }
 
@@ -34,8 +34,8 @@ export function useJobs() {
       eventSourceRef.current.close();
     }
 
-    currentSessionIdRef.current = sessionId;
-    const eventSource = new EventSource(`/api/sessions/${sessionId}/events`);
+    currentProjectIdRef.current = projectId;
+    const eventSource = new EventSource(`/api/projects/${projectId}/events`);
     
     eventSource.onmessage = handleJobUpdate;
     eventSource.onerror = (e) => {
@@ -49,7 +49,7 @@ export function useJobs() {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
-      currentSessionIdRef.current = null;
+      currentProjectIdRef.current = null;
     }
   }, []);
 

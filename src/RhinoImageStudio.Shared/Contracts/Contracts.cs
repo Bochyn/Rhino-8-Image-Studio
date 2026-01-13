@@ -3,14 +3,14 @@ using RhinoImageStudio.Shared.Enums;
 namespace RhinoImageStudio.Shared.Contracts;
 
 // ============================================================================
-// Session Contracts
+// Project Contracts
 // ============================================================================
 
-public record CreateSessionRequest(string Name, string? Description = null);
+public record CreateProjectRequest(string Name, string? Description = null);
 
-public record UpdateSessionRequest(string? Name = null, string? Description = null, bool? IsPinned = null);
+public record UpdateProjectRequest(string? Name = null, string? Description = null, bool? IsPinned = null);
 
-public record SessionDto(
+public record ProjectDto(
     Guid Id,
     string Name,
     string? Description,
@@ -22,14 +22,14 @@ public record SessionDto(
     string? LastThumbnailUrl
 );
 
-public record SessionListResponse(List<SessionDto> Sessions, int TotalCount);
+public record ProjectListResponse(List<ProjectDto> Projects, int TotalCount);
 
 // ============================================================================
 // Capture Contracts
 // ============================================================================
 
 public record CaptureRequest(
-    Guid SessionId,
+    Guid ProjectId,
     int Width = 1024,
     int Height = 1024,
     DisplayMode DisplayMode = DisplayMode.Shaded,
@@ -38,7 +38,7 @@ public record CaptureRequest(
 
 public record CaptureDto(
     Guid Id,
-    Guid SessionId,
+    Guid ProjectId,
     string ImageUrl,
     string? ThumbnailUrl,
     int Width,
@@ -53,7 +53,7 @@ public record CaptureDto(
 // ============================================================================
 
 public record GenerateRequest(
-    Guid SessionId,
+    Guid ProjectId,
     string Prompt,
     Guid? SourceCaptureId = null,
     Guid? ParentGenerationId = null,
@@ -64,31 +64,33 @@ public record GenerateRequest(
 );
 
 public record RefineRequest(
-    Guid SessionId,
+    Guid ProjectId,
     Guid ParentGenerationId,
     string Prompt
 );
 
 public record MultiAngleRequest(
-    Guid SessionId,
+    Guid ProjectId,
     Guid SourceGenerationId,
-    double Azimuth = 0,
-    double Elevation = 0,
-    double Zoom = 5,
+    double HorizontalAngle = 0,    // 0-360 degrees
+    double VerticalAngle = 0,      // -30 to 90 degrees
+    double Zoom = 5,               // 0-10
+    double LoraScale = 0.8,        // 0-1
     int NumImages = 1
 );
 
 public record UpscaleRequest(
-    Guid SessionId,
+    Guid ProjectId,
     Guid SourceGenerationId,
-    int UpscaleFactor = 2,
-    string? Prompt = null,
-    double Creativity = 0.35
+    int UpscaleFactor = 2,              // 1-4
+    string Model = "Standard V2",        // Topaz model type
+    bool FaceEnhancement = false,
+    ImageFormat OutputFormat = ImageFormat.Jpeg
 );
 
 public record GenerationDto(
     Guid Id,
-    Guid SessionId,
+    Guid ProjectId,
     Guid? ParentGenerationId,
     Guid? SourceCaptureId,
     JobType Stage,
@@ -108,7 +110,7 @@ public record GenerationDto(
 
 public record JobDto(
     Guid Id,
-    Guid SessionId,
+    Guid ProjectId,
     JobType Type,
     JobStatus Status,
     int Progress,
