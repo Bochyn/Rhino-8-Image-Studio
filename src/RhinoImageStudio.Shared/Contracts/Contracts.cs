@@ -135,12 +135,18 @@ public record JobProgressEvent(
 // ============================================================================
 
 public record ConfigDto(
-    bool HasApiKey,
+    bool HasFalApiKey,
+    bool HasGeminiApiKey,
     string DataPath,
-    int BackendPort
+    int BackendPort,
+    string DefaultProvider = "gemini"  // "gemini" or "fal"
 );
 
 public record SetApiKeyRequest(string ApiKey);
+
+public record SetGeminiApiKeyRequest(string ApiKey);
+
+public record SetFalApiKeyRequest(string ApiKey);
 
 // ============================================================================
 // Export Contracts

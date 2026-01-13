@@ -61,6 +61,8 @@ public class JobProcessor : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var falClient = scope.ServiceProvider.GetRequiredService<IFalAiClient>();
+        var geminiClient = scope.ServiceProvider.GetRequiredService<IGeminiClient>();
+        var secretStorage = scope.ServiceProvider.GetRequiredService<ISecretStorage>();
         var storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
         _logger.LogInformation("Processing job {JobId} of type {JobType}", job.Id, job.Type);
@@ -78,8 +80,8 @@ public class JobProcessor : BackgroundService
             // Process based on job type
             var result = job.Type switch
             {
-                JobType.Generate => await ProcessGenerateJobAsync(job, dbContext, falClient, storage, cancellationToken),
-                JobType.Refine => await ProcessRefineJobAsync(job, dbContext, falClient, storage, cancellationToken),
+                JobType.Generate => await ProcessGenerateJobAsync(job, dbContext, falClient, geminiClient, secretStorage, storage, cancellationToken),
+                JobType.Refine => await ProcessRefineJobAsync(job, dbContext, falClient, geminiClient, secretStorage, storage, cancellationToken),
                 JobType.MultiAngle => await ProcessMultiAngleJobAsync(job, dbContext, falClient, storage, cancellationToken),
                 JobType.Upscale => await ProcessUpscaleJobAsync(job, dbContext, falClient, storage, cancellationToken),
                 _ => throw new NotSupportedException($"Job type {job.Type} not supported")
@@ -121,6 +123,8 @@ public class JobProcessor : BackgroundService
         Job job,
         AppDbContext dbContext,
         IFalAiClient falClient,
+        IGeminiClient geminiClient,
+        ISecretStorage secretStorage,
         IStorageService storage,
         CancellationToken cancellationToken)
     {
@@ -129,52 +133,97 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        // Build fal.ai input
-        var falInput = new Dictionary<string, object>
-        {
-            ["prompt"] = request.Prompt,
-            ["num_images"] = request.NumImages,
-            ["aspect_ratio"] = ConvertAspectRatio(request.AspectRatio),
-            ["resolution"] = ConvertResolution(request.Resolution),
-            ["output_format"] = request.OutputFormat.ToString().ToLowerInvariant()
-        };
-
-        // If we have a source capture, add it
+        // Get source image if provided
+        byte[]? sourceImageData = null;
         if (request.SourceCaptureId.HasValue)
         {
             var capture = await dbContext.Captures.FindAsync(new object[] { request.SourceCaptureId.Value }, cancellationToken);
             if (capture != null)
             {
-                var imageData = await storage.ReadFileAsync(capture.FilePath, cancellationToken);
-                var imageUrl = await falClient.UploadImageAsync(imageData, $"{capture.Id}.png", cancellationToken);
-                falInput["image_urls"] = new[] { imageUrl };
+                sourceImageData = await storage.ReadFileAsync(capture.FilePath, cancellationToken);
             }
         }
 
-        BroadcastProgress(job, 20, "Submitting to fal.ai...");
+        // Determine which provider to use - Gemini is primary, fal.ai is fallback
+        var hasGeminiKey = await secretStorage.HasSecretAsync("gemini_api_key");
+        var hasFalKey = await secretStorage.HasSecretAsync("fal_api_key");
 
-        // Submit to fal.ai
-        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
-        job.FalRequestId = queueResponse.RequestId;
-        dbContext.Jobs.Update(job);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        Generation generation;
 
-        // Poll for completion
-        var result = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
+        if (hasGeminiKey)
+        {
+            // Use Gemini (Nano Banana) - PRIMARY
+            BroadcastProgress(job, 20, "Generating with Gemini Nano Banana...");
 
-        BroadcastProgress(job, 90, "Saving result...");
+            var config = new GeminiImageConfig(
+                Model: GeminiModels.NanoBanana,
+                OutputFormat: request.OutputFormat.ToString().ToLowerInvariant()
+            );
 
-        // Download and save result
-        var generation = await SaveGenerationResultAsync(
-            job.ProjectId,
-            request.SourceCaptureId,
-            null,
-            JobType.Generate,
-            request.Prompt,
-            result,
-            dbContext,
-            storage,
-            cancellationToken);
+            var geminiResult = await geminiClient.GenerateImageAsync(
+                request.Prompt, 
+                sourceImageData, 
+                config, 
+                cancellationToken);
+
+            BroadcastProgress(job, 90, "Saving result...");
+
+            generation = await SaveGeminiGenerationResultAsync(
+                job.ProjectId,
+                request.SourceCaptureId,
+                null,
+                JobType.Generate,
+                request.Prompt,
+                geminiResult,
+                GeminiModels.NanoBanana,
+                dbContext,
+                storage,
+                cancellationToken);
+        }
+        else if (hasFalKey)
+        {
+            // Fallback to fal.ai
+            BroadcastProgress(job, 20, "Generating with fal.ai...");
+
+            var falInput = new Dictionary<string, object>
+            {
+                ["prompt"] = request.Prompt,
+                ["num_images"] = request.NumImages,
+                ["aspect_ratio"] = ConvertAspectRatio(request.AspectRatio),
+                ["resolution"] = ConvertResolution(request.Resolution),
+                ["output_format"] = request.OutputFormat.ToString().ToLowerInvariant()
+            };
+
+            if (sourceImageData != null)
+            {
+                var imageUrl = await falClient.UploadImageAsync(sourceImageData, $"{request.SourceCaptureId}.png", cancellationToken);
+                falInput["image_urls"] = new[] { imageUrl };
+            }
+
+            var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
+            job.FalRequestId = queueResponse.RequestId;
+            dbContext.Jobs.Update(job);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            var result = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
+
+            BroadcastProgress(job, 90, "Saving result...");
+
+            generation = await SaveGenerationResultAsync(
+                job.ProjectId,
+                request.SourceCaptureId,
+                null,
+                JobType.Generate,
+                request.Prompt,
+                result,
+                dbContext,
+                storage,
+                cancellationToken);
+        }
+        else
+        {
+            throw new InvalidOperationException("No API key configured. Please set a Gemini or fal.ai API key in Settings.");
+        }
 
         return generation.Id;
     }
@@ -183,6 +232,8 @@ public class JobProcessor : BackgroundService
         Job job,
         AppDbContext dbContext,
         IFalAiClient falClient,
+        IGeminiClient geminiClient,
+        ISecretStorage secretStorage,
         IStorageService storage,
         CancellationToken cancellationToken)
     {
@@ -194,38 +245,75 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        // Upload parent image
         var imageData = await storage.ReadFileAsync(parentGeneration.FilePath!, cancellationToken);
-        var imageUrl = await falClient.UploadImageAsync(imageData, $"{parentGeneration.Id}.png", cancellationToken);
 
-        var falInput = new Dictionary<string, object>
+        // Determine which provider to use - Gemini is primary
+        var hasGeminiKey = await secretStorage.HasSecretAsync("gemini_api_key");
+        var hasFalKey = await secretStorage.HasSecretAsync("fal_api_key");
+
+        Generation generation;
+
+        if (hasGeminiKey)
         {
-            ["prompt"] = request.Prompt,
-            ["image_urls"] = new[] { imageUrl },
-            ["num_images"] = 1
-        };
+            BroadcastProgress(job, 20, "Refining with Gemini Nano Banana...");
 
-        BroadcastProgress(job, 20, "Submitting to fal.ai...");
+            var geminiResult = await geminiClient.EditImageAsync(
+                request.Prompt,
+                imageData,
+                new GeminiImageConfig(Model: GeminiModels.NanoBanana),
+                cancellationToken);
 
-        var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
-        job.FalRequestId = queueResponse.RequestId;
+            BroadcastProgress(job, 90, "Saving result...");
 
-        var refineResult = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
+            generation = await SaveGeminiGenerationResultAsync(
+                job.ProjectId,
+                parentGeneration.SourceCaptureId,
+                request.ParentGenerationId,
+                JobType.Refine,
+                request.Prompt,
+                geminiResult,
+                GeminiModels.NanoBanana,
+                dbContext,
+                storage,
+                cancellationToken);
+        }
+        else if (hasFalKey)
+        {
+            var imageUrl = await falClient.UploadImageAsync(imageData, $"{parentGeneration.Id}.png", cancellationToken);
 
-        BroadcastProgress(job, 90, "Saving result...");
+            var falInput = new Dictionary<string, object>
+            {
+                ["prompt"] = request.Prompt,
+                ["image_urls"] = new[] { imageUrl },
+                ["num_images"] = 1
+            };
 
-        var refineGeneration = await SaveGenerationResultAsync(
-            job.ProjectId,
-            parentGeneration.SourceCaptureId,
-            request.ParentGenerationId,
-            JobType.Refine,
-            request.Prompt,
-            refineResult,
-            dbContext,
-            storage,
-            cancellationToken);
+            BroadcastProgress(job, 20, "Refining with fal.ai...");
 
-        return refineGeneration.Id;
+            var queueResponse = await falClient.SubmitAsync(FalModels.NanoBananaEdit, falInput, cancellationToken);
+            job.FalRequestId = queueResponse.RequestId;
+
+            var refineResult = await PollForResultAsync(job, falClient, FalModels.NanoBananaEdit, queueResponse.RequestId, cancellationToken);
+
+            BroadcastProgress(job, 90, "Saving result...");
+
+            generation = await SaveGenerationResultAsync(
+                job.ProjectId,
+                parentGeneration.SourceCaptureId,
+                request.ParentGenerationId,
+                JobType.Refine,
+                request.Prompt,
+                refineResult,
+                dbContext,
+                storage,
+                cancellationToken);
+        }
+        else
+        {
+            throw new InvalidOperationException("No API key configured. Please set a Gemini or fal.ai API key in Settings.");
+        }
+
+        return generation.Id;
     }
 
     private async Task<Guid> ProcessMultiAngleJobAsync(
@@ -446,4 +534,48 @@ public class JobProcessor : BackgroundService
         Resolution.R_4K => "4K",
         _ => "1K"
     };
+
+    /// <summary>
+    /// Save generation result from Gemini API (returns image data directly, no download needed)
+    /// </summary>
+    private async Task<Generation> SaveGeminiGenerationResultAsync(
+        Guid projectId,
+        Guid? sourceCaptureId,
+        Guid? parentGenerationId,
+        JobType stage,
+        string? prompt,
+        GeminiImageResult result,
+        string modelId,
+        AppDbContext dbContext,
+        IStorageService storage,
+        CancellationToken cancellationToken)
+    {
+        var extension = result.MimeType.Contains("png") ? "png" : "jpg";
+
+        var generation = new Generation
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = projectId,
+            SourceCaptureId = sourceCaptureId,
+            ParentGenerationId = parentGenerationId,
+            Stage = stage,
+            Prompt = prompt,
+            Width = null, // Gemini doesn't return dimensions in response
+            Height = null,
+            Seed = null,
+            FalRequestId = null,
+            ModelId = modelId
+        };
+
+        // Save image file
+        generation.FilePath = await storage.SaveGenerationAsync(generation.Id, result.ImageData, extension, cancellationToken);
+
+        // Generate and save thumbnail
+        generation.ThumbnailPath = await storage.SaveThumbnailAsync(generation.Id, result.ImageData, cancellationToken);
+
+        dbContext.Generations.Add(generation);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return generation;
+    }
 }

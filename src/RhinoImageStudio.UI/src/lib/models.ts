@@ -1,10 +1,10 @@
 /**
  * Model configurations for Rhino Image Studio
- * Each model has its own set of parameters as defined by fal.ai API
+ * Each model has its own set of parameters
  */
 
 // ============================================================================
-// ASPECT RATIOS (shared across models that support them)
+// SHARED CONSTANTS
 // ============================================================================
 
 export const ASPECT_RATIOS = [
@@ -30,77 +30,132 @@ export const OUTPUT_FORMATS = [
 // MODEL DEFINITIONS
 // ============================================================================
 
-export type ModelId = 
-  | 'fal-ai/nano-banana/edit'
-  | 'fal-ai/qwen-image-edit-2511-multiple-angles'
-  | 'fal-ai/topaz/upscale/image';
+export type ModelProvider = 'fal' | 'gemini';
 
 export type ModeType = 'generate' | 'refine' | 'multiangle' | 'upscale';
 
-// Model info displayed in UI
+export interface ModelCapabilities {
+  supportsNegativePrompt: boolean;
+  supportsSeed: boolean;
+  supportsAspectRatio: boolean;
+  supportsNumImages: boolean;
+  supportsStrength: boolean; // For image-to-image/refine
+}
+
 export interface ModelInfo {
-  id: ModelId;
+  id: string;
+  provider: ModelProvider;
   name: string;
   shortName: string;
   description: string;
+  capabilities: ModelCapabilities;
 }
 
-// ============================================================================
-// MODE -> MODEL MAPPING (as specified by user)
-// ============================================================================
-
-export const MODE_MODELS: Record<ModeType, ModelInfo> = {
-  generate: {
+export const MODELS: Record<string, ModelInfo> = {
+  'fal-ai/nano-banana/edit': {
     id: 'fal-ai/nano-banana/edit',
+    provider: 'fal',
     name: 'Nano Banana Edit',
     shortName: 'nano-banana',
     description: 'Fast image generation with prompt editing',
+    capabilities: {
+      supportsNegativePrompt: false, // Nano banana is simple
+      supportsSeed: true,
+      supportsAspectRatio: true,
+      supportsNumImages: true,
+      supportsStrength: true,
+    },
   },
-  refine: {
-    id: 'fal-ai/nano-banana/edit',
-    name: 'Nano Banana Edit',
-    shortName: 'nano-banana',
-    description: 'Refine and iterate on existing generations',
+  'gemini-2.5-flash-image': {
+    id: 'gemini-2.5-flash-image',
+    provider: 'gemini',
+    name: 'Gemini 2.5 Flash',
+    shortName: 'gemini-2.5',
+    description: 'Google DeepMind multimodal model',
+    capabilities: {
+      supportsNegativePrompt: true,
+      supportsSeed: false, // Gemini often doesn't expose seed in simple APIs
+      supportsAspectRatio: true,
+      supportsNumImages: true,
+      supportsStrength: true,
+    },
   },
-  multiangle: {
+  'fal-ai/qwen-image-edit-2511-multiple-angles': {
     id: 'fal-ai/qwen-image-edit-2511-multiple-angles',
+    provider: 'fal',
     name: 'Qwen Multi-Angle',
     shortName: 'qwen-multi-angle',
-    description: 'Generate different camera angles of the same scene',
+    description: 'Generate different camera angles',
+    capabilities: {
+      supportsNegativePrompt: false,
+      supportsSeed: true,
+      supportsAspectRatio: false, // Fixed usually
+      supportsNumImages: false,
+      supportsStrength: false,
+    },
   },
-  upscale: {
+  'fal-ai/topaz/upscale/image': {
     id: 'fal-ai/topaz/upscale/image',
+    provider: 'fal',
     name: 'Topaz Upscale',
     shortName: 'topaz',
-    description: 'AI-powered image upscaling with enhancement',
+    description: 'AI-powered image upscaling',
+    capabilities: {
+      supportsNegativePrompt: false,
+      supportsSeed: false,
+      supportsAspectRatio: false,
+      supportsNumImages: false,
+      supportsStrength: false,
+    },
   },
 };
 
 // ============================================================================
-// NANO-BANANA/EDIT SETTINGS (Generate & Refine modes)
+// MODE MAPPINGS
 // ============================================================================
 
-export interface NanoBananaSettings {
-  aspectRatio: string;       // 'auto', '1:1', '16:9', etc.
-  numImages: number;         // 1-4
+// Default models for each mode
+export const MODE_DEFAULTS: Record<ModeType, string> = {
+  generate: 'fal-ai/nano-banana/edit',
+  refine: 'fal-ai/nano-banana/edit',
+  multiangle: 'fal-ai/qwen-image-edit-2511-multiple-angles',
+  upscale: 'fal-ai/topaz/upscale/image',
+};
+
+export const AVAILABLE_MODELS: Record<ModeType, string[]> = {
+  generate: ['fal-ai/nano-banana/edit', 'gemini-2.5-flash-image'],
+  refine: ['fal-ai/nano-banana/edit', 'gemini-2.5-flash-image'],
+  multiangle: ['fal-ai/qwen-image-edit-2511-multiple-angles'],
+  upscale: ['fal-ai/topaz/upscale/image'],
+};
+
+// ============================================================================
+// SETTINGS SCHEMAS & TYPES
+// ============================================================================
+
+// NANO BANANA / GEMINI
+export interface GenerationSettings {
+  aspectRatio: string;
+  numImages: number;
   outputFormat: 'jpeg' | 'png';
+  seed?: number;
+  negativePrompt?: string;
+  strength?: number; // 0-1, used for input image influence
 }
 
-export const DEFAULT_NANO_BANANA_SETTINGS: NanoBananaSettings = {
+export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   aspectRatio: '1:1',
   numImages: 1,
   outputFormat: 'jpeg',
+  strength: 0.75,
 };
 
-// ============================================================================
-// QWEN MULTI-ANGLE SETTINGS
-// ============================================================================
-
+// QWEN MULTI-ANGLE
 export interface QwenMultiAngleSettings {
-  horizontalAngle: number;   // 0-360 degrees
-  verticalAngle: number;     // -30 to 90 degrees
-  zoom: number;              // 0-10
-  loraScale: number;         // LoRA scale factor (0-1)
+  horizontalAngle: number;
+  verticalAngle: number;
+  zoom: number;
+  loraScale: number;
 }
 
 export const DEFAULT_QWEN_SETTINGS: QwenMultiAngleSettings = {
@@ -110,21 +165,7 @@ export const DEFAULT_QWEN_SETTINGS: QwenMultiAngleSettings = {
   loraScale: 0.8,
 };
 
-// Presets for common camera angles
-export const MULTI_ANGLE_PRESETS = [
-  { label: 'Front', horizontalAngle: 0, verticalAngle: 0 },
-  { label: 'Right Side', horizontalAngle: 90, verticalAngle: 0 },
-  { label: 'Back', horizontalAngle: 180, verticalAngle: 0 },
-  { label: 'Left Side', horizontalAngle: 270, verticalAngle: 0 },
-  { label: 'Top Down', horizontalAngle: 0, verticalAngle: 90 },
-  { label: '3/4 View', horizontalAngle: 45, verticalAngle: 30 },
-  { label: 'Low Angle', horizontalAngle: 0, verticalAngle: -30 },
-] as const;
-
-// ============================================================================
-// TOPAZ UPSCALE SETTINGS
-// ============================================================================
-
+// TOPAZ UPSCALE
 export type TopazModelType = 
   | 'Standard V2'
   | 'High Fidelity V2'
@@ -134,7 +175,7 @@ export type TopazModelType =
 
 export interface TopazUpscaleSettings {
   model: TopazModelType;
-  upscaleFactor: number;     // 1-4
+  upscaleFactor: number;
   faceEnhancement: boolean;
   outputFormat: 'jpeg' | 'png';
 }
@@ -146,44 +187,45 @@ export const DEFAULT_TOPAZ_SETTINGS: TopazUpscaleSettings = {
   outputFormat: 'jpeg',
 };
 
-export const TOPAZ_MODELS: { value: TopazModelType; label: string; description: string }[] = [
-  { value: 'Standard V2', label: 'Standard V2', description: 'Best for most images' },
-  { value: 'High Fidelity V2', label: 'High Fidelity V2', description: 'Maximum detail preservation' },
-  { value: 'Graphics', label: 'Graphics', description: 'Optimized for illustrations & graphics' },
-  { value: 'Low Resolution V2', label: 'Low Resolution V2', description: 'Best for very small images' },
-  { value: 'CG', label: 'CG', description: 'Optimized for 3D renders & CGI' },
+export const TOPAZ_MODELS_LIST = [
+  { value: 'Standard V2', label: 'Standard V2' },
+  { value: 'High Fidelity V2', label: 'High Fidelity V2' },
+  { value: 'Graphics', label: 'Graphics' },
+  { value: 'Low Resolution V2', label: 'Low Resolution V2' },
+  { value: 'CG', label: 'CG' },
 ];
 
-// ============================================================================
-// UNIFIED SETTINGS TYPE (for state management)
-// ============================================================================
+export const MULTI_ANGLE_PRESETS = [
+  { label: 'Front', horizontalAngle: 0, verticalAngle: 0 },
+  { label: 'Right Side', horizontalAngle: 90, verticalAngle: 0 },
+  { label: 'Back', horizontalAngle: 180, verticalAngle: 0 },
+  { label: 'Left Side', horizontalAngle: 270, verticalAngle: 0 },
+  { label: 'Top Down', horizontalAngle: 0, verticalAngle: 90 },
+  { label: '3/4 View', horizontalAngle: 45, verticalAngle: 30 },
+  { label: 'Low Angle', horizontalAngle: 0, verticalAngle: -30 },
+] as const;
 
+// Unified Settings Object for State
 export interface AllModelSettings {
-  nanoBanana: NanoBananaSettings;
-  qwenMultiAngle: QwenMultiAngleSettings;
-  topazUpscale: TopazUpscaleSettings;
+  generation: GenerationSettings;
+  multiAngle: QwenMultiAngleSettings;
+  upscale: TopazUpscaleSettings;
 }
 
 export const DEFAULT_ALL_SETTINGS: AllModelSettings = {
-  nanoBanana: DEFAULT_NANO_BANANA_SETTINGS,
-  qwenMultiAngle: DEFAULT_QWEN_SETTINGS,
-  topazUpscale: DEFAULT_TOPAZ_SETTINGS,
+  generation: DEFAULT_GENERATION_SETTINGS,
+  multiAngle: DEFAULT_QWEN_SETTINGS,
+  upscale: DEFAULT_TOPAZ_SETTINGS,
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================================================
 
-export function getModelForMode(mode: ModeType): ModelInfo {
-  return MODE_MODELS[mode];
+export function getModelInfo(id: string): ModelInfo | undefined {
+  return MODELS[id];
 }
 
-export function getAspectRatioLabel(value: string): string {
-  const ar = ASPECT_RATIOS.find(a => a.value === value);
-  return ar ? ar.label : value;
-}
-
-// Get resolution from aspect ratio (base dimension = 1024)
 export function getResolutionFromAspectRatio(aspectRatio: string, baseDimension = 1024): { width: number; height: number } {
   if (aspectRatio === 'auto') {
     return { width: baseDimension, height: baseDimension };
@@ -194,16 +236,13 @@ export function getResolutionFromAspectRatio(aspectRatio: string, baseDimension 
     return { width: baseDimension, height: baseDimension };
   }
   
-  // Calculate dimensions maintaining aspect ratio with base dimension
   const ratio = w / h;
   if (ratio >= 1) {
-    // Landscape or square
     return {
       width: baseDimension,
       height: Math.round(baseDimension / ratio),
     };
   } else {
-    // Portrait
     return {
       width: Math.round(baseDimension * ratio),
       height: baseDimension,

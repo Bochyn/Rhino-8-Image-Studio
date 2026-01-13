@@ -3,9 +3,11 @@ import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest } f
 const API_BASE = '/api';
 
 export interface ConfigInfo {
-  hasApiKey: boolean;
+  hasFalApiKey: boolean;
+  hasGeminiApiKey: boolean;
   dataPath: string;
   backendPort: number;
+  defaultProvider: 'gemini' | 'fal';
 }
 
 export const api = {
@@ -15,6 +17,23 @@ export const api = {
       if (!res.ok) throw new Error('Failed to fetch config');
       return res.json();
     },
+    setGeminiApiKey: async (apiKey: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/config/gemini-api-key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+      if (!res.ok) throw new Error('Failed to set Gemini API key');
+    },
+    setFalApiKey: async (apiKey: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/config/fal-api-key`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+      if (!res.ok) throw new Error('Failed to set fal.ai API key');
+    },
+    // Legacy method for backwards compatibility
     setApiKey: async (apiKey: string): Promise<void> => {
       const res = await fetch(`${API_BASE}/config/api-key`, {
         method: 'POST',
@@ -67,6 +86,12 @@ export const api = {
       const res = await fetch(`${API_BASE}/projects/${projectId}/captures`);
       if (!res.ok) throw new Error('Failed to fetch captures');
       return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/captures/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete capture');
     },
   },
   generations: {

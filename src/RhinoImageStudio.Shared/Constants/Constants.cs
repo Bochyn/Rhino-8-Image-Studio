@@ -67,6 +67,27 @@ public static class FalModels
 }
 
 /// <summary>
+/// Google Gemini model identifiers
+/// </summary>
+public static class GeminiModels
+{
+    // Nano Banana - Primary image generation model
+    public const string NanoBanana = "gemini-2.5-flash-image";
+    
+    // Nano Banana Pro - Advanced image generation (future)
+    public const string NanoBananaPro = "gemini-3-pro-image-preview";
+}
+
+/// <summary>
+/// Provider types for image generation
+/// </summary>
+public static class Providers
+{
+    public const string Gemini = "gemini";
+    public const string FalAi = "fal";
+}
+
+/// <summary>
 /// File storage paths
 /// </summary>
 public static class StoragePaths

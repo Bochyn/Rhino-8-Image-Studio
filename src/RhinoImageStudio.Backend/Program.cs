@@ -41,6 +41,7 @@ builder.Services.AddSingleton<IEventBroadcaster, EventBroadcaster>();
 builder.Services.AddSingleton<ISecretStorage, DpapiSecretStorage>();
 builder.Services.AddSingleton<IStorageService, StorageService>();
 builder.Services.AddHttpClient<IFalAiClient, FalAiClient>();
+builder.Services.AddHttpClient<IGeminiClient, GeminiClient>();
 builder.Services.AddHostedService<JobProcessor>();
 
 // CORS for localhost UI
@@ -254,6 +255,23 @@ api.MapPost("/captures", async (HttpRequest httpRequest, AppDbContext db, IStora
         capture.ViewName,
         capture.CreatedAt
     ));
+});
+
+// Delete capture
+api.MapDelete("/captures/{id:guid}", async (Guid id, AppDbContext db, IStorageService storage) =>
+{
+    var capture = await db.Captures.FindAsync(id);
+    if (capture is null) return Results.NotFound();
+
+    // Delete files
+    await storage.DeleteFileAsync(capture.FilePath);
+    if (capture.ThumbnailPath != null)
+        await storage.DeleteFileAsync(capture.ThumbnailPath);
+
+    db.Captures.Remove(capture);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
 });
 
 // --- Generations ---
@@ -477,11 +495,25 @@ api.MapPost("/upscale", async (UpscaleRequest request, AppDbContext db, IJobQueu
 // --- Config ---
 api.MapGet("/config", async (ISecretStorage secrets, IStorageService storage) =>
 {
-    var hasApiKey = await secrets.HasSecretAsync("fal_api_key");
-    return Results.Ok(new ConfigDto(hasApiKey, storage.BasePath, port));
+    var hasFalApiKey = await secrets.HasSecretAsync("fal_api_key");
+    var hasGeminiApiKey = await secrets.HasSecretAsync("gemini_api_key");
+    return Results.Ok(new ConfigDto(hasFalApiKey, hasGeminiApiKey, storage.BasePath, port, "gemini"));
 });
 
 api.MapPost("/config/api-key", async (SetApiKeyRequest request, ISecretStorage secrets) =>
+{
+    // Legacy endpoint - defaults to fal.ai for backwards compatibility
+    await secrets.SetSecretAsync("fal_api_key", request.ApiKey);
+    return Results.Ok(new { success = true });
+});
+
+api.MapPost("/config/gemini-api-key", async (SetGeminiApiKeyRequest request, ISecretStorage secrets) =>
+{
+    await secrets.SetSecretAsync("gemini_api_key", request.ApiKey);
+    return Results.Ok(new { success = true });
+});
+
+api.MapPost("/config/fal-api-key", async (SetFalApiKeyRequest request, ISecretStorage secrets) =>
 {
     await secrets.SetSecretAsync("fal_api_key", request.ApiKey);
     return Results.Ok(new { success = true });
