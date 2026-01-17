@@ -58,10 +58,10 @@ public record GenerateRequest(
     Guid? SourceCaptureId = null,
     Guid? ParentGenerationId = null,
     string? Model = null,  // e.g., "gemini-2.5-flash-image", "gemini-3-pro-image-preview", "fal-ai/nano-banana/edit"
-    AspectRatio AspectRatio = AspectRatio.Auto,
-    Resolution Resolution = Resolution.R_1K,
+    string? AspectRatio = null,  // e.g., "1:1", "16:9", "4:3" - passed directly to Gemini API
+    string? Resolution = null,   // e.g., "1K", "2K", "4K"
     int NumImages = 1,
-    ImageFormat OutputFormat = ImageFormat.Png
+    string? OutputFormat = null  // e.g., "png", "jpeg"
 );
 
 public record RefineRequest(

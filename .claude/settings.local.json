@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(git checkout:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run build:*)",
+      "Bash(ping:*)",
+      "Bash(findstr:*)",
+      "Skill(update-docs)",
+      "Bash(if not exist \"D:\\\\Rhino Image Studio\\\\changelog\" mkdir \"D:\\\\Rhino Image Studio\\\\changelog\")",
+      "Bash(npx tsc --noEmit)"
+    ]
+  }
+}

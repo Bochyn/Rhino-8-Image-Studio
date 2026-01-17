@@ -55,10 +55,13 @@ export interface UpscaleSettings {
 
 export interface Job {
   id: string;
-  type: 'generation' | 'upscale' | 'refine';
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  type: 'generation' | 'upscale' | 'refine' | 'Generate' | 'Refine' | 'MultiAngle' | 'Upscale';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'Queued' | 'Running' | 'Succeeded' | 'Failed' | 'Canceled';
   progress: number;
   message?: string;
+  progressMessage?: string;
+  errorMessage?: string;
+  resultId?: string;
   result?: any;
   createdAt: string;
   projectId: string;

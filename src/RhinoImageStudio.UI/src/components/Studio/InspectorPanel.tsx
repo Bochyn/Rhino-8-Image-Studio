@@ -42,7 +42,10 @@ export function InspectorPanel({
   // Unified settings state
   const [settings, setSettings] = useState<AllModelSettings>(DEFAULT_ALL_SETTINGS);
 
-  const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'queued');
+  const activeJobs = jobs.filter(j =>
+    j.status === 'running' || j.status === 'Running' ||
+    j.status === 'queued' || j.status === 'Queued'
+  );
   const isProcessing = activeJobs.length > 0;
   const hasSource = !!(selectedCapture || selectedGeneration);
 
@@ -336,11 +339,40 @@ export function InspectorPanel({
         
         {/* Active Jobs Mini-View */}
         {activeJobs.length > 0 && (
-          <div className="mb-3 p-2 bg-black/20 rounded border border-white/5 flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--accent-cta))]" />
-            <span className="text-[10px] text-white/70">
-              Processing {activeJobs.length} job(s)...
-            </span>
+          <div className="mb-3 space-y-2">
+            {activeJobs.map((job) => (
+              <div key={job.id} className="p-3 bg-black/20 rounded-lg border border-white/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--accent-cta))]" />
+                    <span className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                      {job.type === 'Generate' || job.type === 'generation' ? 'Generation' :
+                       job.type === 'Upscale' || job.type === 'upscale' ? 'Upscale' :
+                       job.type === 'Refine' || job.type === 'refine' ? 'Refine' :
+                       job.type === 'MultiAngle' ? 'Multi-Angle' : 'Processing'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[hsl(var(--accent-cta))] font-medium tabular-nums">
+                    {job.progress ?? 0}%
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[hsl(var(--accent-cta))] to-[hsl(var(--accent-cta))]/70 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${job.progress ?? 0}%` }}
+                  />
+                </div>
+
+                {/* Progress Message */}
+                {job.progressMessage && (
+                  <p className="text-[10px] text-white/50 truncate">
+                    {job.progressMessage}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         )}
 

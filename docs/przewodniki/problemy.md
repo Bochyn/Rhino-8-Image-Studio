@@ -32,10 +32,18 @@ Rozwiązania najczęstszych problemów napotykanych podczas pracy z Rhino Image 
 **Rozwiązanie**: Sprawdź zakładkę Settings i upewnij się, że klucz nie ma spacji na początku/końcu. Wygeneruj nowy klucz na fal.ai.
 
 ### Generacja trwa w nieskończoność
-**Przyczyna**: Problem z połączeniem WebSocket lub przeciążenie serwerów fal.ai.
+**Przyczyna**: Problem z połączeniem SSE lub przeciążenie serwerów AI.
 **Rozwiązanie**:
-- Sprawdź logi w konsoli backendu.
+- Sprawdź pasek postępu - powinien płynnie rosnąć od 20% do 85% podczas generacji.
+- Jeśli pasek stoi w miejscu, sprawdź logi w konsoli backendu.
 - Spróbuj zrestartować backend.
+
+### Pasek postępu nie aktualizuje się
+**Przyczyna**: Utracone połączenie SSE (Server-Sent Events).
+**Rozwiązanie**:
+- Aplikacja automatycznie próbuje wznowić połączenie (do 10 prób).
+- Jeśli problem się powtarza, odśwież stronę (F5).
+- Sprawdź w narzędziach deweloperskich przeglądarki (F12 → Network) czy połączenie `/api/projects/{id}/events` jest aktywne.
 
 ### Wynik jest bardzo słabej jakości / rozmazany
 **Przyczyna**: Zbyt niska rozdzielczość Capture lub błędny model AI.

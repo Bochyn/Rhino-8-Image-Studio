@@ -108,7 +108,6 @@ Każdy PR powinien zawierać (szablon jest dostępny w `.github/pull_request_tem
 
 ## ⚠️ Ważne Uwagi
 
-- **Sekrety**: Nigdy nie commituj plików `appsettings.json` z prawdziwymi kluczami API.
 - **Backend First**: Frontend (`.UI`) zależy od plików statycznych serwowanych przez Backend. Po dużych zmianach w UI zawsze uruchom `npm run build`.
 
 Dziękujemy za Twój wkład!

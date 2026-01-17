@@ -71,7 +71,7 @@ export function StudioPage() {
 
   // Reload generations when job completes
   useEffect(() => {
-    const completedJob = jobs.find(j => j.status === 'completed');
+    const completedJob = jobs.find(j => j.status === 'completed' || j.status === 'Succeeded');
     if (completedJob) {
       loadData();
     }
@@ -108,20 +108,27 @@ export function StudioPage() {
 
   const handleGenerate = async (prompt: string, settings: any) => {
     if (!projectId) return;
-    
+
     try {
-      // Determine sourceCaptureId based on selected item
+      // Determine source based on selected item type
       let sourceCaptureId: string | undefined;
-      if (selectedItem && 'viewName' in selectedItem) {
-        sourceCaptureId = selectedItem.id;
+      let parentGenerationId: string | undefined;
+
+      if (selectedItem) {
+        if ('viewName' in selectedItem) {
+          // It's a Capture
+          sourceCaptureId = selectedItem.id;
+        } else if ('prompt' in selectedItem) {
+          // It's a Generation
+          parentGenerationId = selectedItem.id;
+        }
       }
-      // If a generation is selected, we could use its source capture for refinement
-      // but for now we focus on capture-based generation
 
       await api.generations.create({
         projectId,
         prompt,
         sourceCaptureId,
+        parentGenerationId,
         model: settings?.model,
         aspectRatio: settings?.aspectRatio,
         numImages: settings?.numImages ?? 1,
@@ -173,7 +180,10 @@ export function StudioPage() {
   // For now, we compare against nothing or handle it if we had the data.
   // A simple hack: If we have a selected Generation, and we have Captures, maybe we can find one? No.
   // We'll leave 'originalImage' undefined for generations for now unless we store it.
-  
+
+  // Find active job for progress display
+  const activeJob = jobs.find(j => j.status === 'running' || j.status === 'Running') || null;
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[hsl(var(--app-bg))]">
@@ -229,10 +239,11 @@ export function StudioPage() {
 
         {/* Center: Canvas */}
         <div className="flex-1 min-w-0">
-          <CanvasStage 
+          <CanvasStage
             currentImage={getDisplayImage()}
             originalImage={null} // TODO: Implement source tracking for proper comparison
-            isProcessing={jobs.some(j => j.status === 'running')}
+            isProcessing={!!activeJob}
+            activeJob={activeJob}
             onDownload={handleDownload}
           />
         </div>

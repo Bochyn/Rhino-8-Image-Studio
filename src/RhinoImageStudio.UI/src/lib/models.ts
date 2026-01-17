@@ -52,20 +52,6 @@ export interface ModelInfo {
 }
 
 export const MODELS: Record<string, ModelInfo> = {
-  'gemini-2.5-flash-image': {
-    id: 'gemini-2.5-flash-image',
-    provider: 'gemini',
-    name: 'Gemini 2.5 Flash',
-    shortName: 'gemini-2.5',
-    description: 'Google DeepMind multimodal model - fast',
-    capabilities: {
-      supportsNegativePrompt: true,
-      supportsSeed: false,
-      supportsAspectRatio: true,
-      supportsNumImages: true,
-      supportsStrength: true,
-    },
-  },
   'gemini-3-pro-image-preview': {
     id: 'gemini-3-pro-image-preview',
     provider: 'gemini',
@@ -75,20 +61,6 @@ export const MODELS: Record<string, ModelInfo> = {
     capabilities: {
       supportsNegativePrompt: true,
       supportsSeed: false,
-      supportsAspectRatio: true,
-      supportsNumImages: true,
-      supportsStrength: true,
-    },
-  },
-  'fal-ai/nano-banana/edit': {
-    id: 'fal-ai/nano-banana/edit',
-    provider: 'fal',
-    name: 'Nano Banana Edit',
-    shortName: 'nano-banana',
-    description: 'Fast image generation with prompt editing',
-    capabilities: {
-      supportsNegativePrompt: false,
-      supportsSeed: true,
       supportsAspectRatio: true,
       supportsNumImages: true,
       supportsStrength: true,
@@ -128,17 +100,17 @@ export const MODELS: Record<string, ModelInfo> = {
 // MODE MAPPINGS
 // ============================================================================
 
-// Default models for each mode (Gemini is PRIMARY)
+// Default models for each mode (Gemini 3 Pro is PRIMARY)
 export const MODE_DEFAULTS: Record<ModeType, string> = {
-  generate: 'gemini-2.5-flash-image',
-  refine: 'gemini-2.5-flash-image',
+  generate: 'gemini-3-pro-image-preview',
+  refine: 'gemini-3-pro-image-preview',
   multiangle: 'fal-ai/qwen-image-edit-2511-multiple-angles',
   upscale: 'fal-ai/topaz/upscale/image',
 };
 
 export const AVAILABLE_MODELS: Record<ModeType, string[]> = {
-  generate: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview', 'fal-ai/nano-banana/edit'],
-  refine: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview', 'fal-ai/nano-banana/edit'],
+  generate: ['gemini-3-pro-image-preview'],
+  refine: ['gemini-3-pro-image-preview'],
   multiangle: ['fal-ai/qwen-image-edit-2511-multiple-angles'],
   upscale: ['fal-ai/topaz/upscale/image'],
 };
