@@ -74,7 +74,7 @@ public class GeminiClient : IGeminiClient
         }
 
         // Gemini image generation: responseModalities tells it to return images
-        // Do NOT set responseMimeType - that's only for text outputs
+        // imageConfig contains aspectRatio and imageSize per API docs
         var requestBody = new
         {
             contents = new[]
@@ -83,7 +83,12 @@ public class GeminiClient : IGeminiClient
             },
             generationConfig = new
             {
-                responseModalities = new[] { "TEXT", "IMAGE" }
+                responseModalities = new[] { "TEXT", "IMAGE" },
+                imageConfig = new
+                {
+                    aspectRatio = config.AspectRatio ?? "1:1",
+                    imageSize = config.ImageSize ?? "2K"
+                }
             }
         };
 
@@ -226,7 +231,8 @@ public class GeminiClient : IGeminiClient
 public record GeminiImageConfig(
     string? Model = null,
     string OutputFormat = "jpeg",
-    string? AspectRatio = null
+    string? AspectRatio = null,
+    string? ImageSize = null  // e.g., "1K", "2K", "4K"
 );
 
 // Result from Gemini image generation

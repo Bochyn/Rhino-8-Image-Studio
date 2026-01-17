@@ -6,51 +6,52 @@ namespace RhinoImageStudio.Backend.Services;
 
 /// <summary>
 /// Service for broadcasting job progress events via SSE
+/// Uses JobDto to send full job state for proper frontend updates
 /// </summary>
 public interface IEventBroadcaster
 {
-    void Broadcast(JobProgressEvent progressEvent);
-    void BroadcastToProject(Guid projectId, JobProgressEvent progressEvent);
-    IAsyncEnumerable<JobProgressEvent> SubscribeAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<JobProgressEvent> SubscribeToProjectAsync(Guid projectId, CancellationToken cancellationToken);
+    void Broadcast(JobDto jobDto);
+    void BroadcastToProject(Guid projectId, JobDto jobDto);
+    IAsyncEnumerable<JobDto> SubscribeAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<JobDto> SubscribeToProjectAsync(Guid projectId, CancellationToken cancellationToken);
 }
 
 public class EventBroadcaster : IEventBroadcaster
 {
-    private readonly Channel<JobProgressEvent> _globalChannel;
-    private readonly Dictionary<Guid, Channel<JobProgressEvent>> _projectChannels = new();
+    private readonly Channel<JobDto> _globalChannel;
+    private readonly Dictionary<Guid, Channel<JobDto>> _projectChannels = new();
     private readonly object _lock = new();
 
     public EventBroadcaster()
     {
-        _globalChannel = Channel.CreateUnbounded<JobProgressEvent>(new UnboundedChannelOptions
+        _globalChannel = Channel.CreateUnbounded<JobDto>(new UnboundedChannelOptions
         {
             SingleReader = false,
             SingleWriter = false
         });
     }
 
-    public void Broadcast(JobProgressEvent progressEvent)
+    public void Broadcast(JobDto jobDto)
     {
-        _globalChannel.Writer.TryWrite(progressEvent);
+        _globalChannel.Writer.TryWrite(jobDto);
     }
 
-    public void BroadcastToProject(Guid projectId, JobProgressEvent progressEvent)
+    public void BroadcastToProject(Guid projectId, JobDto jobDto)
     {
         // Broadcast to global channel
-        Broadcast(progressEvent);
+        Broadcast(jobDto);
 
         // Also broadcast to project-specific channel if exists
         lock (_lock)
         {
             if (_projectChannels.TryGetValue(projectId, out var channel))
             {
-                channel.Writer.TryWrite(progressEvent);
+                channel.Writer.TryWrite(jobDto);
             }
         }
     }
 
-    public async IAsyncEnumerable<JobProgressEvent> SubscribeAsync(
+    public async IAsyncEnumerable<JobDto> SubscribeAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await foreach (var evt in _globalChannel.Reader.ReadAllAsync(cancellationToken))
@@ -59,17 +60,17 @@ public class EventBroadcaster : IEventBroadcaster
         }
     }
 
-    public async IAsyncEnumerable<JobProgressEvent> SubscribeToProjectAsync(
+    public async IAsyncEnumerable<JobDto> SubscribeToProjectAsync(
         Guid projectId,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        Channel<JobProgressEvent> channel;
+        Channel<JobDto> channel;
 
         lock (_lock)
         {
             if (!_projectChannels.TryGetValue(projectId, out channel!))
             {
-                channel = Channel.CreateUnbounded<JobProgressEvent>();
+                channel = Channel.CreateUnbounded<JobDto>();
                 _projectChannels[projectId] = channel;
             }
         }

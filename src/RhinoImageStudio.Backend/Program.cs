@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using RhinoImageStudio.Backend.Data;
 using RhinoImageStudio.Backend.Services;
@@ -7,6 +8,13 @@ using RhinoImageStudio.Shared.Constants;
 using RhinoImageStudio.Shared.Contracts;
 using RhinoImageStudio.Shared.Enums;
 using RhinoImageStudio.Shared.Models;
+
+// JSON options with enum string converter for SSE events
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    Converters = { new JsonStringEnumConverter() }
+};
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +51,13 @@ builder.Services.AddSingleton<IStorageService, StorageService>();
 builder.Services.AddHttpClient<IFalAiClient, FalAiClient>();
 builder.Services.AddHttpClient<IGeminiClient, GeminiClient>();
 builder.Services.AddHostedService<JobProcessor>();
+
+// Configure JSON to serialize enums as strings
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
 
 // CORS for localhost UI
 builder.Services.AddCors(options =>
@@ -528,7 +543,7 @@ api.MapGet("/events", async (IEventBroadcaster broadcaster, HttpContext context,
 
     await foreach (var evt in broadcaster.SubscribeAsync(cancellationToken))
     {
-        var json = JsonSerializer.Serialize(evt);
+        var json = JsonSerializer.Serialize(evt, jsonOptions);
         await context.Response.WriteAsync($"data: {json}\n\n", cancellationToken);
         await context.Response.Body.FlushAsync(cancellationToken);
     }
@@ -542,7 +557,7 @@ api.MapGet("/projects/{projectId:guid}/events", async (Guid projectId, IEventBro
 
     await foreach (var evt in broadcaster.SubscribeToProjectAsync(projectId, cancellationToken))
     {
-        var json = JsonSerializer.Serialize(evt);
+        var json = JsonSerializer.Serialize(evt, jsonOptions);
         await context.Response.WriteAsync($"data: {json}\n\n", cancellationToken);
         await context.Response.Body.FlushAsync(cancellationToken);
     }

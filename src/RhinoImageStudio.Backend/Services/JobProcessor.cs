@@ -115,8 +115,26 @@ public class JobProcessor : BackgroundService
 
     private void BroadcastProgress(Job job, int progress, string? message, Guid? resultId = null)
     {
-        var evt = new JobProgressEvent(job.Id, job.Status, progress, message, resultId);
-        _eventBroadcaster.BroadcastToProject(job.ProjectId, evt);
+        // Update job in-memory for broadcast
+        job.Progress = progress;
+        job.ProgressMessage = message;
+        if (resultId.HasValue) job.ResultId = resultId;
+
+        // Send full JobDto so frontend can properly update state
+        var jobDto = new JobDto(
+            Id: job.Id,
+            ProjectId: job.ProjectId,
+            Type: job.Type,
+            Status: job.Status,
+            Progress: progress,
+            ProgressMessage: message,
+            ErrorMessage: job.ErrorMessage,
+            ResultId: resultId,
+            CreatedAt: job.CreatedAt,
+            StartedAt: job.StartedAt,
+            CompletedAt: job.CompletedAt
+        );
+        _eventBroadcaster.BroadcastToProject(job.ProjectId, jobDto);
     }
 
     private async Task<Guid> ProcessGenerateJobAsync(
@@ -133,7 +151,7 @@ public class JobProcessor : BackgroundService
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        // Get source image if provided
+        // Get source image if provided (from Capture or parent Generation)
         byte[]? sourceImageData = null;
         if (request.SourceCaptureId.HasValue)
         {
@@ -141,6 +159,14 @@ public class JobProcessor : BackgroundService
             if (capture != null)
             {
                 sourceImageData = await storage.ReadFileAsync(capture.FilePath, cancellationToken);
+            }
+        }
+        else if (request.ParentGenerationId.HasValue)
+        {
+            var parentGeneration = await dbContext.Generations.FindAsync(new object[] { request.ParentGenerationId.Value }, cancellationToken);
+            if (parentGeneration?.FilePath != null)
+            {
+                sourceImageData = await storage.ReadFileAsync(parentGeneration.FilePath, cancellationToken);
             }
         }
 
@@ -162,14 +188,30 @@ public class JobProcessor : BackgroundService
 
             var config = new GeminiImageConfig(
                 Model: selectedModel,
-                OutputFormat: request.OutputFormat.ToString().ToLowerInvariant()
+                OutputFormat: request.OutputFormat?.ToLowerInvariant() ?? "png",
+                AspectRatio: request.AspectRatio ?? "1:1",
+                ImageSize: request.Resolution ?? "1K"
             );
 
-            var geminiResult = await geminiClient.GenerateImageAsync(
-                request.Prompt, 
-                sourceImageData, 
-                config, 
-                cancellationToken);
+            // Start simulated progress updates while waiting for Gemini
+            using var progressCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var progressTask = SimulateProgressAsync(job, 20, 85, progressCts.Token);
+
+            GeminiImageResult geminiResult;
+            try
+            {
+                geminiResult = await geminiClient.GenerateImageAsync(
+                    request.Prompt,
+                    sourceImageData,
+                    config,
+                    cancellationToken);
+            }
+            finally
+            {
+                // Stop simulated progress
+                progressCts.Cancel();
+                try { await progressTask; } catch (OperationCanceledException) { }
+            }
 
             BroadcastProgress(job, 90, "Saving result...");
 
@@ -194,9 +236,9 @@ public class JobProcessor : BackgroundService
             {
                 ["prompt"] = request.Prompt,
                 ["num_images"] = request.NumImages,
-                ["aspect_ratio"] = ConvertAspectRatio(request.AspectRatio),
-                ["resolution"] = ConvertResolution(request.Resolution),
-                ["output_format"] = request.OutputFormat.ToString().ToLowerInvariant()
+                ["aspect_ratio"] = request.AspectRatio ?? "1:1",
+                ["resolution"] = request.Resolution ?? "1K",
+                ["output_format"] = request.OutputFormat?.ToLowerInvariant() ?? "png"
             };
 
             if (sourceImageData != null)
@@ -517,29 +559,6 @@ public class JobProcessor : BackgroundService
         return generation;
     }
 
-    private static string ConvertAspectRatio(AspectRatio ratio) => ratio switch
-    {
-        AspectRatio.Auto => "auto",
-        AspectRatio.Square_1_1 => "1:1",
-        AspectRatio.Landscape_16_9 => "16:9",
-        AspectRatio.Landscape_4_3 => "4:3",
-        AspectRatio.Landscape_3_2 => "3:2",
-        AspectRatio.Landscape_21_9 => "21:9",
-        AspectRatio.Portrait_9_16 => "9:16",
-        AspectRatio.Portrait_3_4 => "3:4",
-        AspectRatio.Portrait_2_3 => "2:3",
-        AspectRatio.Portrait_4_5 => "4:5",
-        _ => "auto"
-    };
-
-    private static string ConvertResolution(Resolution res) => res switch
-    {
-        Resolution.R_1K => "1K",
-        Resolution.R_2K => "2K",
-        Resolution.R_4K => "4K",
-        _ => "1K"
-    };
-
     /// <summary>
     /// Save generation result from Gemini API (returns image data directly, no download needed)
     /// </summary>
@@ -582,5 +601,47 @@ public class JobProcessor : BackgroundService
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return generation;
+    }
+
+    /// <summary>
+    /// Simulates progress updates while waiting for a synchronous API call.
+    /// Progress increases gradually from startProgress to maxProgress.
+    /// </summary>
+    private async Task SimulateProgressAsync(Job job, int startProgress, int maxProgress, CancellationToken cancellationToken)
+    {
+        var progress = startProgress;
+        var progressMessages = new[]
+        {
+            "Analyzing input...",
+            "Processing with AI...",
+            "Generating image...",
+            "Refining details...",
+            "Almost there..."
+        };
+        var messageIndex = 0;
+
+        try
+        {
+            while (progress < maxProgress && !cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(800, cancellationToken);
+
+                // Increase progress with diminishing returns (slower as it approaches max)
+                var remaining = maxProgress - progress;
+                var increment = Math.Max(1, remaining / 8);
+                progress = Math.Min(progress + increment, maxProgress);
+
+                // Cycle through progress messages
+                var message = progressMessages[messageIndex % progressMessages.Length];
+                if (progress > startProgress + (maxProgress - startProgress) / 3)
+                    messageIndex = Math.Min(messageIndex + 1, progressMessages.Length - 1);
+
+                BroadcastProgress(job, progress, message);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the actual API call completes
+        }
     }
 }

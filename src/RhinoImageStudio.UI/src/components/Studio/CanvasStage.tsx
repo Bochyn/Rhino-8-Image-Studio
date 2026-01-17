@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/Common/Button';
 import { CompareSlider } from '@/components/Studio/CompareSlider';
-import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save } from 'lucide-react';
+import { Job } from '@/lib/types';
 
 interface CanvasStageProps {
   currentImage: string | null;
   originalImage?: string | null;
   isProcessing: boolean;
+  activeJob?: Job | null;
   onDownload?: () => void;
 }
 
@@ -14,6 +16,7 @@ export function CanvasStage({
   currentImage,
   originalImage,
   isProcessing,
+  activeJob,
   onDownload
 }: CanvasStageProps) {
   const [zoom, setZoom] = useState(1);
@@ -98,9 +101,63 @@ export function CanvasStage({
         
         {isProcessing && (
           <div className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-            <div className="flex flex-col items-center gap-4 p-6 bg-[hsl(var(--card-bg))] rounded-xl border border-[hsl(var(--border-subtle))] shadow-2xl">
-              <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--accent-cta))]" />
-              <span className="text-sm font-medium text-white/80 animate-pulse">Processing...</span>
+            <div className="flex flex-col items-center gap-5 p-8 bg-[hsl(var(--card-bg))] rounded-2xl border border-[hsl(var(--border-subtle))] shadow-2xl min-w-[280px]">
+              {/* Animated Icon */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-[hsl(var(--accent-cta))]/20 rounded-full blur-xl animate-pulse" />
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[hsl(var(--accent-cta))]/30 to-[hsl(var(--accent-cta))]/10 flex items-center justify-center border border-[hsl(var(--accent-cta))]/30">
+                  {activeJob && activeJob.progress >= 90 ? (
+                    <Save className="h-7 w-7 text-[hsl(var(--accent-cta))] animate-pulse" />
+                  ) : activeJob && activeJob.progress >= 20 ? (
+                    <Sparkles className="h-7 w-7 text-[hsl(var(--accent-cta))] animate-pulse" />
+                  ) : (
+                    <ImageIcon className="h-7 w-7 text-[hsl(var(--accent-cta))] animate-pulse" />
+                  )}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="text-center">
+                <h3 className="text-base font-semibold text-white mb-1">
+                  {activeJob?.type === 'Generate' || activeJob?.type === 'generation' ? 'Generating Image' :
+                   activeJob?.type === 'Upscale' || activeJob?.type === 'upscale' ? 'Upscaling Image' :
+                   activeJob?.type === 'Refine' || activeJob?.type === 'refine' ? 'Refining Image' :
+                   activeJob?.type === 'MultiAngle' ? 'Rendering 3D View' : 'Processing'}
+                </h3>
+                <p className="text-xs text-white/50">
+                  {activeJob?.progressMessage || 'Starting...'}
+                </p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full space-y-2">
+                <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[hsl(var(--accent-cta))] to-[hsl(var(--accent-cta))]/70 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${activeJob?.progress ?? 0}%` }}
+                  />
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-white/40">Progress</span>
+                  <span className="text-[hsl(var(--accent-cta))] font-medium tabular-nums">
+                    {activeJob?.progress ?? 0}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Phase Indicators */}
+              <div className="flex items-center gap-2 text-[10px] text-white/40">
+                <div className={`w-2 h-2 rounded-full transition-colors ${(activeJob?.progress ?? 0) >= 10 ? 'bg-[hsl(var(--accent-cta))]' : 'bg-white/20'}`} />
+                <span className={(activeJob?.progress ?? 0) >= 10 && (activeJob?.progress ?? 0) < 20 ? 'text-white/80' : ''}>Prepare</span>
+                <div className="w-4 h-px bg-white/20" />
+                <div className={`w-2 h-2 rounded-full transition-colors ${(activeJob?.progress ?? 0) >= 20 ? 'bg-[hsl(var(--accent-cta))]' : 'bg-white/20'}`} />
+                <span className={(activeJob?.progress ?? 0) >= 20 && (activeJob?.progress ?? 0) < 90 ? 'text-white/80' : ''}>Generate</span>
+                <div className="w-4 h-px bg-white/20" />
+                <div className={`w-2 h-2 rounded-full transition-colors ${(activeJob?.progress ?? 0) >= 90 ? 'bg-[hsl(var(--accent-cta))]' : 'bg-white/20'}`} />
+                <span className={(activeJob?.progress ?? 0) >= 90 ? 'text-white/80' : ''}>Save</span>
+              </div>
             </div>
           </div>
         )}
