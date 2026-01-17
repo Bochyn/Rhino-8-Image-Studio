@@ -34,9 +34,9 @@
     <ProjectReference Include="..\RhinoImageStudio.Shared\RhinoImageStudio.Shared.csproj" />
   </ItemGroup>
 
-  <!-- Embed UI dist files as static content -->
+  <!-- Ensure wwwroot is copied to build output -->
   <ItemGroup>
-    <Content Include="..\RhinoImageStudio.UI\dist\**\*" CopyToOutputDirectory="PreserveNewest" Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)" Condition="Exists('..\RhinoImageStudio.UI\dist')" />
+    <Content Include="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
