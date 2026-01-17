@@ -111,3 +111,4 @@ _journal/
 appsettings.json
 appsettings.Development.json
 changelog/
+SPEC.md
