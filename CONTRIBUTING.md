@@ -1,6 +1,6 @@
 # Jak kontrybuować do Rhino Image Studio
 
-Cieszymy się, że chcesz pomóc w rozwoju projektu! Oto przewodnik, który pomoże Ci zacząć.
+Cieszymy się, że chcesz pomóc w rozwoju projektu! Stosujemy standard **Conventional Commits** oraz ściśle określony format Pull Requestów.
 
 ## 🛠️ Wymagania wstępne
 
@@ -42,17 +42,69 @@ npm run build
 2.  **Zainstaluj Plugin**: W Rhino wpisz `PlugInManager`, kliknij "Install" i wybierz `build/Debug/net48/RhinoImageStudio.rhp`.
 3.  **Otwórz Panel**: Wpisz komendę `RhinoImageStudio`.
 
-## 🤝 Zasady Pull Request (PR)
+---
 
-1.  **Nazewnictwo Branchy**: Używaj formatu `type/opis`, np.:
-    - `feature/nowy-slider`
-    - `fix/blad-polaczenia`
-    - `docs/aktualizacja-readme`
-2.  **Opis Zmian**: W opisie PR napisz krótko, co zmieniłeś i dlaczego.
-3.  **Screenshoty**: Jeśli zmieniasz wygląd (UI), **koniecznie** dołącz zrzut ekranu "Przed" i "Po".
-4.  **Czysty Kod**:
-    - Backend: Kod powinien być sformatowany zgodnie ze standardami C#.
-    - Frontend: Nie zostawiaj `console.log` w kodzie produkcyjnym.
+## 📋 Format Tytułu PR (Conventional Commits)
+
+Używamy formatu:
+```
+<type>(<scope>): <summary>
+```
+
+### Types (Wymagane)
+
+| Typ        | Opis                                             | Changelog |
+|------------|--------------------------------------------------|-----------|
+| `feat`     | Nowa funkcjonalność                              | Tak       |
+| `fix`      | Naprawa błędu                                    | Tak       |
+| `perf`     | Poprawa wydajności                               | Tak       |
+| `test`     | Dodanie lub poprawa testów                       | Nie       |
+| `docs`     | Tylko zmiany w dokumentacji                      | Nie       |
+| `refactor` | Zmiana kodu (bez fixów i feature'ów)             | Nie       |
+| `build`    | System budowania lub zależności                  | Nie       |
+| `ci`       | Konfiguracja CI                                  | Nie       |
+| `chore`    | Zadania rutynowe, maintenance                    | Nie       |
+
+### Scopes (Opcjonalne, zalecane)
+
+- `UI` - Zmiany w frontendzie (React)
+- `Backend` - Zmiany w API (.NET)
+- `Plugin` - Zmiany we wtyczce Rhino (.NET 4.8)
+- `AI` - Integracje z modelami (fal.ai)
+- `Docs` - Dokumentacja
+
+### Zasady Podsumowania (Summary)
+
+- Używaj trybu rozkazującego (angielski): "Add" a nie "Added"
+- Wielka litera na początku
+- Brak kropki na końcu
+- Dodaj suffix `(no-changelog)` aby pominąć w changelogu
+
+### Przykłady
+
+```bash
+feat(UI): Add dark mode toggle
+fix(Backend): Resolve WebSocket connection timeout
+docs: Update installation guide (no-changelog)
+feat(AI)!: Upgrade to SDXL model (Breaking Change)
+```
+
+---
+
+## 📝 Treść PR (PR Body)
+
+Każdy PR powinien zawierać (szablon jest dostępny w `.github/pull_request_template.md`):
+
+1.  **Summary**: Co robi ten PR i jak to przetestować.
+    - Wymagane zdjęcia/video dla zmian w UI.
+2.  **Related Issues**: Linki do issues na GitHubie.
+    - Używaj słów kluczowych: `closes #123`, `fixes #123`.
+3.  **Checklist**:
+    - [ ] PR title zgodny z konwencją
+    - [ ] Dokumentacja zaktualizowana
+    - [ ] Testy (manualne/automatyczne)
+
+---
 
 ## ⚠️ Ważne Uwagi
 
