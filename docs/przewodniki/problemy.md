@@ -1,0 +1,44 @@
+# Rozwiązywanie Problemów
+
+Rozwiązania najczęstszych problemów napotykanych podczas pracy z Rhino Image Studio.
+
+## Problemy z Uruchomieniem
+
+### Backend nie startuje (Port in use)
+**Objaw**: Komunikat błędu `System.IO.IOException: Failed to bind to address http://127.0.0.1:17532`.
+**Przyczyna**: Inna instancja backendu już działa lub port jest zajęty.
+**Rozwiązanie**:
+1. Sprawdź, czy nie masz otwartego innego okna terminala z uruchomionym `dotnet run`.
+2. Zamknij proces `RhinoImageStudio.Backend.exe` przez Menedżer Zadań.
+
+### Plugin nie ładuje się w Rhino
+**Objaw**: Błąd przy instalacji lub brak komendy `RhinoImageStudio`.
+**Przyczyna**: Zła wersja Rhino lub brak .NET Framework 4.8.
+**Rozwiązanie**:
+- Upewnij się, że używasz **Rhino 8** na Windows.
+- Sprawdź we właściwościach pliku `.rhp` (prawy przycisk myszy -> Właściwości), czy system Windows go nie zablokował ("Unblock").
+
+### Pusty biały ekran w panelu
+**Objaw**: Panel się otwiera, ale jest pusty.
+**Przyczyna**: Brak WebView2 Runtime lub backend nie działa.
+**Rozwiązanie**:
+1. Upewnij się, że backend działa (otwórz `http://localhost:17532` w przeglądarce - powinieneś zobaczyć stronę UI).
+2. Zainstaluj [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+
+## Problemy z Generowaniem
+
+### Błąd "Authentication failed"
+**Przyczyna**: Nieprawidłowy lub brakujący klucz API.
+**Rozwiązanie**: Sprawdź zakładkę Settings i upewnij się, że klucz nie ma spacji na początku/końcu. Wygeneruj nowy klucz na fal.ai.
+
+### Generacja trwa w nieskończoność
+**Przyczyna**: Problem z połączeniem WebSocket lub przeciążenie serwerów fal.ai.
+**Rozwiązanie**:
+- Sprawdź logi w konsoli backendu.
+- Spróbuj zrestartować backend.
+
+### Wynik jest bardzo słabej jakości / rozmazany
+**Przyczyna**: Zbyt niska rozdzielczość Capture lub błędny model AI.
+**Rozwiązanie**:
+- Zwiększ rozdzielczość w ustawieniach Capture.
+- Użyj funkcji **Upscale** na gotowym obrazku.

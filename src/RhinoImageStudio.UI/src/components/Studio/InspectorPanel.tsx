@@ -58,12 +58,10 @@ export function InspectorPanel({
     if (!hasSource) return;
 
     // Construct the payload based on mode and current settings
-    // Note: The backend expects specific flat structures depending on the model, 
-    // or we can pass a structured object if the API supports it. 
-    // Looking at previous ControlsPanel, it flattened the settings.
+    // The StudioPage expects: { model, aspectRatio, numImages, outputFormat, ... }
     
     let payload: any = {
-      modelId: selectedModelId
+      model: selectedModelId
     };
 
     if (mode === 'generate' || mode === 'refine') {

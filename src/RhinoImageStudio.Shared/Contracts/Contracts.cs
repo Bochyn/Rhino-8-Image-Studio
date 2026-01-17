@@ -57,6 +57,7 @@ public record GenerateRequest(
     string Prompt,
     Guid? SourceCaptureId = null,
     Guid? ParentGenerationId = null,
+    string? Model = null,  // e.g., "gemini-2.5-flash-image", "gemini-3-pro-image-preview", "fal-ai/nano-banana/edit"
     AspectRatio AspectRatio = AspectRatio.Auto,
     Resolution Resolution = Resolution.R_1K,
     int NumImages = 1,

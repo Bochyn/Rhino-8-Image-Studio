@@ -71,8 +71,13 @@ export interface CreateProjectRequest {
 export interface GenerateRequest {
   projectId: string;
   prompt: string;
-  settings: GenerationSettings;
-  captureId?: string; // Optional source image
+  sourceCaptureId?: string;
+  parentGenerationId?: string;
+  model?: string;  // e.g., "gemini-2.5-flash-image", "gemini-3-pro-image-preview"
+  aspectRatio?: string;
+  resolution?: string;
+  numImages?: number;
+  outputFormat?: 'jpeg' | 'png' | 'Jpeg' | 'Png';
 }
 
 export interface ViewportInfo {

@@ -4,73 +4,94 @@
 
 @layer base {
   :root {
-    /* Light mode fallback (though we're building for dark mode primarily) */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* ============================================
+       LIGHT MODE (default for system preference)
+       ============================================ */
+    --background: 0 0% 98%;
+    --foreground: 224 71% 4%;
+
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 71% 4%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 222 47% 11%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222 47% 11%;
+    --popover-foreground: 224 71% 4%;
+
+    --primary: 220 90% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 224 71% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 90% 56%;
     --radius: 0.5rem;
 
-    /* Custom App Tokens (Light - Unused but defined) */
-    --app-bg: 0 0% 100%;
-    --panel-bg: 210 40% 98%;
-    --card-bg: 0 0% 100%;
-    --card-hover: 210 40% 96%;
-    --border-subtle: 214 32% 91%;
+    /* Custom App Tokens - Light Mode */
+    --app-bg: 220 14% 96%;          /* cool gray-100 */
+    --stage-bg: 220 13% 91%;        /* cool gray-200 */
+    --panel-bg: 0 0% 100%;          /* white */
+    --card-bg: 220 14% 96%;         /* cool gray-100 */
+    --card-hover: 220 13% 91%;      /* cool gray-200 */
+    --border-subtle: 220 13% 87%;   /* cool gray-300 */
+    --accent-cta: 160 84% 39%;      /* emerald-500 */
+    --accent-cta-hover: 160 84% 34%; /* emerald-600 */
   }
 
   .dark {
-    /* Base Shadcn tokens adapted for new theme */
-    --background: 222 47% 5%;        /* Matches app-bg */
-    --foreground: 210 40% 98%;
+    /* ============================================
+       DARK MODE - Revised Hierarchy
+       Background → Stage → Panels → Cards (light to dark inversion)
+       ============================================ */
+    --background: 224 71% 4%;       /* gray-950 */
+    --foreground: 213 31% 91%;      /* gray-100 */
 
-    --card: 222 47% 9%;              /* Matches panel-bg */
-    --card-foreground: 210 40% 98%;
+    --card: 220 17% 17%;            /* gray-800 */
+    --card-foreground: 213 31% 91%;
 
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 17% 17%;
+    --popover-foreground: 213 31% 91%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47.4% 11.2%;
+    --primary: 210 100% 52%;        /* blue-500 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 215 28% 17%;       /* gray-800 */
+    --secondary-foreground: 213 31% 91%;
 
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 15%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 215 28% 17%;
+    --accent-foreground: 213 31% 91%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217 33% 15%;
-    --input: 217 33% 15%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 216 34% 17%;
 
-    /* Required New Tokens */
-    --app-bg: 222 47% 5%;        /* gray-950 equivalent */
-    --panel-bg: 222 47% 9%;      /* gray-900 */
-    --card-bg: 217 33% 15%;      /* gray-800 */
-    --card-hover: 217 33% 20%;   /* gray-700/60 */
-    --border-subtle: 217 33% 24%; /* gray-700/40 */
-    --accent-cta: 160 84% 39%;   /* emerald-500 for CTA */
+    /* ============================================
+       Custom App Tokens - Dark Mode (NEW HIERARCHY)
+       Darkest → Lighter as you go "up" in z-order
+       ============================================ */
+    --app-bg: 224 71% 4%;           /* gray-950 - darkest, app shell */
+    --stage-bg: 222 47% 11%;        /* gray-900 - canvas/stage area */
+    --panel-bg: 220 17% 17%;        /* gray-800 - side panels (LIGHTER) */
+    --card-bg: 218 17% 24%;         /* gray-700 - cards, tiles (LIGHTER) */
+    --card-hover: 217 19% 30%;      /* gray-600/60 - hover state */
+    --border-subtle: 217 16% 18%;   /* white/8 equivalent */
+    --accent-cta: 160 84% 39%;      /* emerald-500 for primary CTA */
+    --accent-cta-hover: 160 84% 34%; /* emerald-600 for hover */
   }
 }
 
@@ -79,7 +100,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-[hsl(var(--app-bg))] text-foreground;
+    @apply bg-[hsl(var(--app-bg))] text-foreground antialiased;
   }
 }
 
@@ -92,5 +113,36 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-[hsl(var(--border-subtle))] rounded-full hover:bg-[hsl(var(--card-hover))] transition-colors;
+  @apply bg-[hsl(var(--border-subtle))] rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-[hsl(var(--card-hover))];
+}
+
+/* Utility classes for the new tokens */
+@layer utilities {
+  .bg-app {
+    background-color: hsl(var(--app-bg));
+  }
+  .bg-stage {
+    background-color: hsl(var(--stage-bg));
+  }
+  .bg-panel {
+    background-color: hsl(var(--panel-bg));
+  }
+  .bg-card-surface {
+    background-color: hsl(var(--card-bg));
+  }
+  .bg-card-surface-hover {
+    background-color: hsl(var(--card-hover));
+  }
+  .border-subtle {
+    border-color: hsl(var(--border-subtle));
+  }
+  .bg-cta {
+    background-color: hsl(var(--accent-cta));
+  }
+  .bg-cta-hover {
+    background-color: hsl(var(--accent-cta-hover));
+  }
 }

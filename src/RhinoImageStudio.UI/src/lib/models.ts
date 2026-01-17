@@ -52,6 +52,34 @@ export interface ModelInfo {
 }
 
 export const MODELS: Record<string, ModelInfo> = {
+  'gemini-2.5-flash-image': {
+    id: 'gemini-2.5-flash-image',
+    provider: 'gemini',
+    name: 'Gemini 2.5 Flash',
+    shortName: 'gemini-2.5',
+    description: 'Google DeepMind multimodal model - fast',
+    capabilities: {
+      supportsNegativePrompt: true,
+      supportsSeed: false,
+      supportsAspectRatio: true,
+      supportsNumImages: true,
+      supportsStrength: true,
+    },
+  },
+  'gemini-3-pro-image-preview': {
+    id: 'gemini-3-pro-image-preview',
+    provider: 'gemini',
+    name: 'Gemini 3 Pro (Preview)',
+    shortName: 'gemini-3-pro',
+    description: 'Google DeepMind advanced image generation',
+    capabilities: {
+      supportsNegativePrompt: true,
+      supportsSeed: false,
+      supportsAspectRatio: true,
+      supportsNumImages: true,
+      supportsStrength: true,
+    },
+  },
   'fal-ai/nano-banana/edit': {
     id: 'fal-ai/nano-banana/edit',
     provider: 'fal',
@@ -59,22 +87,8 @@ export const MODELS: Record<string, ModelInfo> = {
     shortName: 'nano-banana',
     description: 'Fast image generation with prompt editing',
     capabilities: {
-      supportsNegativePrompt: false, // Nano banana is simple
+      supportsNegativePrompt: false,
       supportsSeed: true,
-      supportsAspectRatio: true,
-      supportsNumImages: true,
-      supportsStrength: true,
-    },
-  },
-  'gemini-2.5-flash-image': {
-    id: 'gemini-2.5-flash-image',
-    provider: 'gemini',
-    name: 'Gemini 2.5 Flash',
-    shortName: 'gemini-2.5',
-    description: 'Google DeepMind multimodal model',
-    capabilities: {
-      supportsNegativePrompt: true,
-      supportsSeed: false, // Gemini often doesn't expose seed in simple APIs
       supportsAspectRatio: true,
       supportsNumImages: true,
       supportsStrength: true,
@@ -89,7 +103,7 @@ export const MODELS: Record<string, ModelInfo> = {
     capabilities: {
       supportsNegativePrompt: false,
       supportsSeed: true,
-      supportsAspectRatio: false, // Fixed usually
+      supportsAspectRatio: false,
       supportsNumImages: false,
       supportsStrength: false,
     },
@@ -114,17 +128,17 @@ export const MODELS: Record<string, ModelInfo> = {
 // MODE MAPPINGS
 // ============================================================================
 
-// Default models for each mode
+// Default models for each mode (Gemini is PRIMARY)
 export const MODE_DEFAULTS: Record<ModeType, string> = {
-  generate: 'fal-ai/nano-banana/edit',
-  refine: 'fal-ai/nano-banana/edit',
+  generate: 'gemini-2.5-flash-image',
+  refine: 'gemini-2.5-flash-image',
   multiangle: 'fal-ai/qwen-image-edit-2511-multiple-angles',
   upscale: 'fal-ai/topaz/upscale/image',
 };
 
 export const AVAILABLE_MODELS: Record<ModeType, string[]> = {
-  generate: ['fal-ai/nano-banana/edit', 'gemini-2.5-flash-image'],
-  refine: ['fal-ai/nano-banana/edit', 'gemini-2.5-flash-image'],
+  generate: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview', 'fal-ai/nano-banana/edit'],
+  refine: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview', 'fal-ai/nano-banana/edit'],
   multiangle: ['fal-ai/qwen-image-edit-2511-multiple-angles'],
   upscale: ['fal-ai/topaz/upscale/image'],
 };

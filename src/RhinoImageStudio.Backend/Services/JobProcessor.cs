@@ -144,19 +144,24 @@ public class JobProcessor : BackgroundService
             }
         }
 
-        // Determine which provider to use - Gemini is primary, fal.ai is fallback
+        // Determine which provider to use based on model selection and available keys
         var hasGeminiKey = await secretStorage.HasSecretAsync("gemini_api_key");
         var hasFalKey = await secretStorage.HasSecretAsync("fal_api_key");
+        
+        // Determine the model to use
+        var selectedModel = request.Model ?? GeminiModels.NanoBanana; // Default to Gemini 2.5 Flash
+        var isGeminiModel = selectedModel.StartsWith("gemini-");
+        var isFalModel = selectedModel.StartsWith("fal-");
 
         Generation generation;
 
-        if (hasGeminiKey)
+        if (isGeminiModel && hasGeminiKey)
         {
-            // Use Gemini (Nano Banana) - PRIMARY
-            BroadcastProgress(job, 20, "Generating with Gemini Nano Banana...");
+            // Use Gemini with selected model
+            BroadcastProgress(job, 20, $"Generating with {selectedModel}...");
 
             var config = new GeminiImageConfig(
-                Model: GeminiModels.NanoBanana,
+                Model: selectedModel,
                 OutputFormat: request.OutputFormat.ToString().ToLowerInvariant()
             );
 
@@ -175,12 +180,12 @@ public class JobProcessor : BackgroundService
                 JobType.Generate,
                 request.Prompt,
                 geminiResult,
-                GeminiModels.NanoBanana,
+                selectedModel,
                 dbContext,
                 storage,
                 cancellationToken);
         }
-        else if (hasFalKey)
+        else if (isFalModel && hasFalKey)
         {
             // Fallback to fal.ai
             BroadcastProgress(job, 20, "Generating with fal.ai...");

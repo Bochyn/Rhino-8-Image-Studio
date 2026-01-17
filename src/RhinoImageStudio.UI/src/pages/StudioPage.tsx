@@ -9,6 +9,7 @@ import { CanvasStage } from '@/components/Studio/CanvasStage';
 import { InspectorPanel } from '@/components/Studio/InspectorPanel';
 import { SettingsModal } from '@/components/Settings/SettingsModal';
 import { Button } from '@/components/Common/Button';
+import { ThemeSwitch } from '@/components/Common/ThemeSwitch';
 import { Settings, Loader2, Home } from 'lucide-react';
 
 export function StudioPage() {
@@ -109,29 +110,22 @@ export function StudioPage() {
     if (!projectId) return;
     
     try {
-      // Determine captureId based on selected item
-      let captureId: string | undefined;
+      // Determine sourceCaptureId based on selected item
+      let sourceCaptureId: string | undefined;
       if (selectedItem && 'viewName' in selectedItem) {
-        captureId = selectedItem.id;
-      } else if (selectedItem && 'prompt' in selectedItem) {
-        // If a generation is selected, we might want to use its source capture? 
-        // Or if it's refinement, we use the generation image itself?
-        // API.generations.create expects `captureId`.
-        // If we are refining a generation, the backend might handle it differently or we need to pass the image URL.
-        // For now, let's assume we need a base capture.
-        // If we don't have one, we can't generate unless it's text-to-image (not supported by NanoBanana usually without Init image?)
-        // Wait, NanoBanana/Edit needs an image.
-        // Let's see if we can trace back the capture ID or if we just pass the selected ID.
-        // The API definition says `captureId?: string`.
-        // If we selected a generation, we might be out of luck unless we stored the source capture ID.
-        // But for now, let's just pass captureId if it IS a capture.
+        sourceCaptureId = selectedItem.id;
       }
+      // If a generation is selected, we could use its source capture for refinement
+      // but for now we focus on capture-based generation
 
       await api.generations.create({
         projectId,
         prompt,
-        settings,
-        captureId: captureId, // Only pass if it's a capture for now, strictly speaking
+        sourceCaptureId,
+        model: settings?.model,
+        aspectRatio: settings?.aspectRatio,
+        numImages: settings?.numImages ?? 1,
+        outputFormat: settings?.outputFormat ?? 'Png',
       });
       // Job will be tracked via SSE
     } catch (error) {
@@ -207,6 +201,7 @@ export function StudioPage() {
               Rhino Bridge Disconnected
             </div>
           )}
+          <ThemeSwitch />
           <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} className="hover:bg-white/5">
             <Settings className="h-5 w-5 text-white/70" />
           </Button>

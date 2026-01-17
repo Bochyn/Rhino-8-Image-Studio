@@ -73,6 +73,8 @@ public class GeminiClient : IGeminiClient
             });
         }
 
+        // Gemini image generation: responseModalities tells it to return images
+        // Do NOT set responseMimeType - that's only for text outputs
         var requestBody = new
         {
             contents = new[]
@@ -81,8 +83,7 @@ public class GeminiClient : IGeminiClient
             },
             generationConfig = new
             {
-                responseModalities = new[] { "TEXT", "IMAGE" },
-                responseMimeType = config.OutputFormat == "png" ? "image/png" : "image/jpeg"
+                responseModalities = new[] { "TEXT", "IMAGE" }
             }
         };
 

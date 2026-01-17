@@ -4,6 +4,7 @@ import { Project } from '@/lib/types';
 import { ProjectCard } from '@/components/Sessions/SessionCard';
 import { CreateProjectModal } from '@/components/Sessions/CreateSessionModal';
 import { Button } from '@/components/Common/Button';
+import { ThemeSwitch } from '@/components/Common/ThemeSwitch';
 import { Plus, Search, Loader2, FolderOpen, Image } from 'lucide-react';
 import { Input } from '@/components/Common/Input';
 
@@ -67,10 +68,13 @@ export function HomePage() {
             <h1 className="text-4xl font-bold tracking-tight text-foreground">Rhino Image Studio</h1>
             <p className="text-muted-foreground mt-2">AI-powered rendering and visualization</p>
           </div>
-          <Button size="lg" onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-3">
+            <ThemeSwitch />
+            <Button size="lg" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
