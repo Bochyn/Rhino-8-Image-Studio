@@ -33,6 +33,7 @@ export interface Generation {
 
 export interface GenerationSettings {
   aspectRatio: string;
+  resolution?: string;       // "1K", "2K", "4K" (Gemini)
   numImages: number;         // 1-4 for nano-banana
   outputFormat: 'jpeg' | 'png';
   seed?: number;

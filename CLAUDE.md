@@ -1,5 +1,5 @@
 # SPEC.md — Rhino Image Studio (Windows)
-Wersja: 0.3 (MVP + UI Redesign)
+Wersja: 0.4 (MVP + Model-Aware AR/Resolution)
 Status: Development / Open Source Preparation
 
 ## 1. Streszczenie (Executive Summary)
@@ -22,6 +22,7 @@ Status: Development / Open Source Preparation
 - [ ] Batch processing (wiele widoków naraz).
 - [ ] Zaawansowane zarządzanie sesjami (eksport/import).
 - [ ] Lokalne modele (opcjonalnie w przyszłości).
+- [ ] Dodatkowe modele AI (np. Flux 2 Pro).
 
 ---
 
@@ -45,6 +46,41 @@ Aplikacja wykorzystuje chmurę fal.ai do przetwarzania:
 - **Generation**: `fal-ai/fast-sdxl` lub `google/gemini` (zależnie od konfiguracji).
 - **Multi-angle**: `fal-ai/qwen-image-edit-2511-multiple-angles`.
 - **Upscaler**: `fal-ai/esrgan`.
+
+### Model-Aware Configuration
+
+**WAŻNE:** Dostępne opcje Aspect Ratio i Resolution są **zależne od wybranego modelu AI**.
+
+Każdy model ma własną konfigurację zdefiniowaną w `src/RhinoImageStudio.UI/src/lib/models.ts`:
+
+```typescript
+interface ModelInfo {
+  id: string;
+  provider: 'fal' | 'gemini';
+  name: string;
+  capabilities: ModelCapabilities;
+  aspectRatios?: AspectRatioOption[];   // Dostępne AR dla modelu
+  resolutions?: ResolutionOption[];      // Dostępne rozdzielczości
+}
+```
+
+**Gemini 3 Pro** (aktualny model główny):
+- **Aspect Ratios:** `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`
+- **Resolutions:** `1K` (1024px), `2K` (2048px), `4K` (4096px)
+
+**Viewport Capture synchronizacja:**
+- Capture automatycznie używa wymiarów zgodnych z wybranym AR i Resolution w edytorze
+- Funkcja `calculateDimensions(aspectRatio, resolution, modelId)` przelicza piksele
+
+**Dodawanie nowych modeli:**
+Aby dodać nowy model (np. Flux 2 Pro), zdefiniuj jego opcje AR/Resolution w `models.ts`:
+```typescript
+const FLUX_ASPECT_RATIOS: AspectRatioOption[] = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'square_hd', label: 'Square HD', ratio: 1 },
+  // ...
+];
+```
 
 ---
 

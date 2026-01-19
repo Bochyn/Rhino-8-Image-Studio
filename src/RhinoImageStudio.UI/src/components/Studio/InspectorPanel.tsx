@@ -26,6 +26,7 @@ interface InspectorPanelProps {
   selectedCapture: Capture | null;
   selectedGeneration: Generation | null;
   onGenerate: (prompt: string, settings: any) => void;
+  onSettingsChange?: (settings: AllModelSettings, modelId: string) => void;
   jobs: Job[];
 }
 
@@ -33,6 +34,7 @@ export function InspectorPanel({
   selectedCapture,
   selectedGeneration,
   onGenerate,
+  onSettingsChange,
   jobs,
 }: InspectorPanelProps) {
   const [mode, setMode] = useState<ModeType>('generate');
@@ -49,6 +51,12 @@ export function InspectorPanel({
   const isProcessing = activeJobs.length > 0;
   const hasSource = !!(selectedCapture || selectedGeneration);
 
+  // Get model-specific options
+  const currentModel = MODELS[selectedModelId];
+  const availableAspectRatios = currentModel?.aspectRatios || [];
+  const availableResolutions = currentModel?.resolutions || [];
+  const hasResolutions = availableResolutions.length > 0;
+
   // Initialize model selection when mode changes
   useEffect(() => {
     const models = AVAILABLE_MODELS[mode];
@@ -56,6 +64,36 @@ export function InspectorPanel({
       setSelectedModelId(models[0]);
     }
   }, [mode]);
+
+  // Notify parent of settings changes
+  useEffect(() => {
+    onSettingsChange?.(settings, selectedModelId);
+  }, [settings, selectedModelId, onSettingsChange]);
+
+  // Validate AR/Resolution when model changes
+  useEffect(() => {
+    const model = MODELS[selectedModelId];
+    if (!model) return;
+
+    const currentAR = settings.generation.aspectRatio;
+    const currentRes = settings.generation.resolution;
+
+    // Check if current AR is available for this model
+    const arValid = model.aspectRatios?.some(a => a.value === currentAR);
+    // Check if current Resolution is available for this model
+    const resValid = !model.resolutions || model.resolutions.some(r => r.value === currentRes);
+
+    if (!arValid || !resValid) {
+      setSettings(s => ({
+        ...s,
+        generation: {
+          ...s.generation,
+          aspectRatio: arValid ? currentAR : (model.aspectRatios?.[0]?.value || '1:1'),
+          resolution: resValid ? currentRes : (model.resolutions?.[0]?.value || '1K'),
+        }
+      }));
+    }
+  }, [selectedModelId]);
 
   const handleSubmit = () => {
     if (!hasSource) return;
@@ -203,25 +241,52 @@ export function InspectorPanel({
           {/* General Generation Settings */}
           {(mode === 'generate' || mode === 'refine') && (
             <>
-               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Aspect Ratio</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['1:1', '16:9', '4:3', '3:4', '9:16'].map(ratio => (
-                    <button
-                      key={ratio}
-                      onClick={() => setSettings(s => ({ ...s, generation: { ...s.generation, aspectRatio: ratio } }))}
-                      className={cn(
-                        "py-2 px-1 text-xs rounded-lg border transition-all",
-                        settings.generation.aspectRatio === ratio
-                          ? "bg-primary/20 border-primary text-primary"
-                          : "bg-transparent border-border text-secondary hover:border-secondary"
-                      )}
-                    >
-                      {ratio}
-                    </button>
-                  ))}
+              {/* Aspect Ratio Selector - dynamic from model */}
+              {availableAspectRatios.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Aspect Ratio</label>
+                  <div className="grid grid-cols-5 gap-1">
+                    {availableAspectRatios.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => setSettings(s => ({ ...s, generation: { ...s.generation, aspectRatio: value } }))}
+                        title={label}
+                        className={cn(
+                          "py-1.5 px-1 text-[10px] rounded-md border transition-all",
+                          settings.generation.aspectRatio === value
+                            ? "bg-primary/20 border-primary text-primary"
+                            : "bg-transparent border-border text-secondary hover:border-secondary"
+                        )}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Resolution Selector - only if model supports it */}
+              {hasResolutions && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Resolution</label>
+                  <div className="flex gap-2">
+                    {availableResolutions.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        onClick={() => setSettings(s => ({ ...s, generation: { ...s.generation, resolution: value } }))}
+                        className={cn(
+                          "flex-1 py-2 text-xs rounded-lg border transition-all",
+                          settings.generation.resolution === value
+                            ? "bg-primary/20 border-primary text-primary"
+                            : "bg-transparent border-border text-secondary hover:border-secondary"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Project, Capture, Generation } from '@/lib/types';
+import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS } from '@/lib/models';
 import { useJobs } from '@/hooks/useJobs';
 import { useRhino } from '@/hooks/useRhino';
 import { AssetsPanel } from '@/components/Studio/AssetsPanel';
@@ -29,6 +30,10 @@ export function StudioPage() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
+
+  // Editor settings from InspectorPanel (for capture sync)
+  const [editorSettings, setEditorSettings] = useState<AllModelSettings>(DEFAULT_ALL_SETTINGS);
+  const [currentModelId, setCurrentModelId] = useState<string>('gemini-3-pro-image-preview');
 
   // Load project data
   const loadData = useCallback(async () => {
@@ -77,14 +82,20 @@ export function StudioPage() {
     }
   }, [jobs, loadData]);
 
-  // Capture viewport
-  const handleCapture = async () => {
-    // Default capture settings
-    const width = 1024;
-    const height = 1024;
-    const displayMode = 'Shaded';
+  // Handle settings changes from InspectorPanel
+  const handleSettingsChange = useCallback((settings: AllModelSettings, modelId: string) => {
+    setEditorSettings(settings);
+    setCurrentModelId(modelId);
+  }, []);
 
+  // Capture viewport with AR/Resolution from editor settings
+  const handleCapture = async () => {
     if (!projectId || !rhino) return;
+
+    // Get dimensions from current editor settings
+    const { aspectRatio, resolution } = editorSettings.generation;
+    const { width, height } = calculateDimensions(aspectRatio, resolution, currentModelId);
+    const displayMode = 'Shaded';
 
     setIsCapturing(true);
     try {
@@ -128,6 +139,7 @@ export function StudioPage() {
         parentGenerationId,
         model: settings?.model,
         aspectRatio: settings?.aspectRatio,
+        resolution: settings?.resolution,
         numImages: settings?.numImages ?? 1,
         outputFormat: settings?.outputFormat ?? 'Png',
       });
@@ -244,6 +256,7 @@ export function StudioPage() {
             selectedCapture={selectedItem && 'viewName' in selectedItem ? selectedItem : null}
             selectedGeneration={selectedItem && 'prompt' in selectedItem ? selectedItem : null}
             onGenerate={handleGenerate}
+            onSettingsChange={handleSettingsChange}
             jobs={jobs}
           />
         </div>
