@@ -13,6 +13,7 @@ Pełna dokumentacja projektu znajduje się w folderze [`/docs`](docs/index.md).
 - **[Pierwsze Kroki](docs/pierwsze-kroki.md)** - Instalacja, wymagania i konfiguracja.
 - **[Przewodnik Użytkownika](docs/przewodniki/podstawy.md)** - Jak generować obrazy, używać promptów i funkcji AI.
 - **[Rozwiązywanie Problemów](docs/przewodniki/problemy.md)** - Pomoc przy błędach.
+- **[Wspierane Modele AI](docs/modele-ai.md)** - Lista modeli i ich parametry.
 - **[Architektura](docs/api/architektura.md)** - Dla deweloperów.
 
 ## Szybki Start (Dla Developerów)
@@ -40,9 +41,10 @@ dotnet RhinoImageStudio.Backend.dll
 
 ## Funkcje
 
-- 🎨 **Text-to-Image / Image-to-Image**: Generowanie na podstawie widoku z Rhino.
-- 🔄 **Multi-angle**: Generowanie widoków z różnych stron.
-- 🔍 **Upscaling**: Zwiększanie rozdzielczości do druku/prezentacji.
+- 🎨 **Text-to-Image / Image-to-Image**: Generowanie wizualizacji na podstawie widoku z Rhino (Gemini 3 Pro).
+- 🔄 **Pan (Move Camera)**: Intuicyjne przesuwanie kamery wokół obiektu (Qwen Multi-Angle).
+- 🔍 **Upscaling**: Zwiększanie rozdzielczości do 4K z AI enhancement (Topaz).
+- 📊 **A/B Comparison**: Slider do porównania Before/After (viewport vs generacja).
 - 💾 **Historia**: Pełna historia iteracji zapisywana lokalnie.
 
 ## Licencja

@@ -14,6 +14,7 @@ Jeśli dopiero zaczynasz, zapoznaj się z poniższymi materiałami:
 Szczegółowe instrukcje dotyczące funkcji aplikacji:
 
 - **[Podstawy i Workflow](przewodniki/podstawy.md)**: Jak działa proces Capture → Generate → Upscale.
+- **[Wspierane Modele AI](modele-ai.md)**: Lista modeli, ich parametry i możliwości.
 - **[Rozwiązywanie Problemów](przewodniki/problemy.md)**: Co zrobić, gdy backend nie startuje lub plugin nie działa.
 
 ## Dla Deweloperów i Architektów

@@ -116,5 +116,46 @@ export const api = {
       if (!res.ok) throw new Error('Failed to start generation');
       return res.json();
     }
+  },
+  multiAngle: {
+    create: async (data: MultiAngleRequest): Promise<void> => {
+      const res = await fetch(`${API_BASE}/multi-angle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to start multi-angle generation');
+    }
+  },
+  upscale: {
+    create: async (data: UpscaleRequest): Promise<void> => {
+      const res = await fetch(`${API_BASE}/upscale`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to start upscale');
+    }
   }
 };
+
+// Request types for new endpoints
+export interface MultiAngleRequest {
+  projectId: string;
+  sourceGenerationId?: string;  // Either generation or capture
+  sourceCaptureId?: string;
+  horizontalAngle?: number;     // 0-360 (API format)
+  verticalAngle?: number;       // -30 to 90
+  zoom?: number;                // 0-10
+  loraScale?: number;           // 0-1
+  numImages?: number;
+}
+
+export interface UpscaleRequest {
+  projectId: string;
+  sourceGenerationId: string;
+  model?: string;
+  upscaleFactor?: number;
+  faceEnhancement?: boolean;
+  outputFormat?: 'jpeg' | 'png';
+}

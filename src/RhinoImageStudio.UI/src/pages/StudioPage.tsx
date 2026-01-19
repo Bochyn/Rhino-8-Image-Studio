@@ -118,9 +118,11 @@ export function StudioPage() {
     if (!projectId) return;
 
     try {
+      const mode = settings?.mode || 'generate';
+
       // Determine source based on selected item type
       let sourceCaptureId: string | undefined;
-      let parentGenerationId: string | undefined;
+      let sourceGenerationId: string | undefined;
 
       if (selectedItem) {
         if ('viewName' in selectedItem) {
@@ -128,21 +130,53 @@ export function StudioPage() {
           sourceCaptureId = selectedItem.id;
         } else if ('prompt' in selectedItem) {
           // It's a Generation
-          parentGenerationId = selectedItem.id;
+          sourceGenerationId = selectedItem.id;
         }
       }
 
-      await api.generations.create({
-        projectId,
-        prompt,
-        sourceCaptureId,
-        parentGenerationId,
-        model: settings?.model,
-        aspectRatio: settings?.aspectRatio,
-        resolution: settings?.resolution,
-        numImages: settings?.numImages ?? 1,
-        outputFormat: settings?.outputFormat ?? 'Png',
-      });
+      if (mode === 'multiangle') {
+        // Multi-angle works with both capture and generation
+        if (!sourceGenerationId && !sourceCaptureId) {
+          console.error('Multi-angle requires an image source');
+          return;
+        }
+        await api.multiAngle.create({
+          projectId,
+          sourceGenerationId,
+          sourceCaptureId,
+          horizontalAngle: settings?.horizontalAngle,
+          verticalAngle: settings?.verticalAngle,
+          zoom: settings?.zoom,
+          loraScale: settings?.loraScale,
+        });
+      } else if (mode === 'upscale') {
+        // Upscale requires a source generation
+        if (!sourceGenerationId) {
+          console.error('Upscale requires a generated image as source');
+          return;
+        }
+        await api.upscale.create({
+          projectId,
+          sourceGenerationId,
+          model: settings?.model,
+          upscaleFactor: settings?.upscaleFactor,
+          faceEnhancement: settings?.faceEnhancement,
+          outputFormat: settings?.outputFormat,
+        });
+      } else {
+        // Generate or Refine
+        await api.generations.create({
+          projectId,
+          prompt,
+          sourceCaptureId,
+          parentGenerationId: sourceGenerationId,
+          model: settings?.model,
+          aspectRatio: settings?.aspectRatio,
+          resolution: settings?.resolution,
+          numImages: settings?.numImages ?? 1,
+          outputFormat: settings?.outputFormat ?? 'Png',
+        });
+      }
       // Job will be tracked via SSE
     } catch (error) {
       console.error('Generate failed:', error);

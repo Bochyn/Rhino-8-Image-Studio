@@ -9,7 +9,8 @@ import {
   Loader2,
   ChevronDown,
   Wand2,
-  Settings2
+  Settings2,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -19,8 +20,13 @@ import {
   AllModelSettings,
   DEFAULT_ALL_SETTINGS,
   TOPAZ_MODELS_LIST,
-  MULTI_ANGLE_PRESETS
+  MULTI_ANGLE_PRESETS,
+  horizontalUiToApi,
+  formatHorizontalAngle,
+  formatVerticalAngle,
+  formatZoom,
 } from '@/lib/models';
+import { AngleSlider } from '@/components/Common/AngleSlider';
 
 interface InspectorPanelProps {
   selectedCapture: Capture | null;
@@ -99,16 +105,22 @@ export function InspectorPanel({
     if (!hasSource) return;
 
     // Construct the payload based on mode and current settings
-    // The StudioPage expects: { model, aspectRatio, numImages, outputFormat, ... }
-
     let payload: any = {
+      mode,  // Pass mode so StudioPage knows which API to call
       model: selectedModelId
     };
 
     if (mode === 'generate' || mode === 'refine') {
       payload = { ...payload, ...settings.generation };
     } else if (mode === 'multiangle') {
-      payload = { ...payload, ...settings.multiAngle };
+      // Convert UI horizontal angle (-180..+180) to API angle (0..360)
+      payload = {
+        ...payload,
+        horizontalAngle: horizontalUiToApi(settings.multiAngle.horizontalAngle),
+        verticalAngle: settings.multiAngle.verticalAngle,
+        zoom: settings.multiAngle.zoom,
+        loraScale: settings.multiAngle.loraScale,
+      };
     } else if (mode === 'upscale') {
       payload = { ...payload, ...settings.upscale };
     }
@@ -153,7 +165,7 @@ export function InspectorPanel({
       {[
         { id: 'generate', icon: Sparkles, label: 'Gen' },
         { id: 'refine', icon: RefreshCw, label: 'Edit' },
-        { id: 'multiangle', icon: Move3D, label: '3D' },
+        { id: 'multiangle', icon: Move3D, label: 'Pan' },
         { id: 'upscale', icon: ArrowUpCircle, label: 'Up' },
       ].map((m) => (
         <button
@@ -310,42 +322,113 @@ export function InspectorPanel({
 
           {/* Multi-Angle Settings */}
           {mode === 'multiangle' && (
-            <div className="space-y-4">
-               <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Presets</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {MULTI_ANGLE_PRESETS.slice(0, 4).map(preset => (
-                      <button
-                        key={preset.label}
-                        onClick={() => setSettings(s => ({
-                          ...s,
-                          multiAngle: {
-                            ...s.multiAngle,
-                            horizontalAngle: preset.horizontalAngle,
-                            verticalAngle: preset.verticalAngle
-                          }
-                        }))}
-                        className="py-2 px-2 text-xs rounded-lg border border-border text-secondary hover:bg-primary/5 hover:border-secondary text-left"
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-               </div>
+            <div className="space-y-5">
+              {/* Presets */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
+                    Quick Presets
+                  </label>
+                  <button
+                    onClick={() => setSettings(s => ({
+                      ...s,
+                      multiAngle: {
+                        ...s.multiAngle,
+                        horizontalAngle: 0,
+                        verticalAngle: 0,
+                        zoom: 5,
+                      }
+                    }))}
+                    className="flex items-center gap-1 text-[10px] text-secondary hover:text-primary transition-colors"
+                    title="Reset to defaults"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reset
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {MULTI_ANGLE_PRESETS.map(preset => (
+                    <button
+                      key={preset.label}
+                      onClick={() => setSettings(s => ({
+                        ...s,
+                        multiAngle: {
+                          ...s.multiAngle,
+                          horizontalAngle: preset.horizontalAngle,
+                          verticalAngle: preset.verticalAngle,
+                          zoom: preset.zoom,
+                        }
+                      }))}
+                      className={cn(
+                        "py-2 px-1.5 text-[10px] rounded-lg border transition-all text-center",
+                        settings.multiAngle.horizontalAngle === preset.horizontalAngle &&
+                        settings.multiAngle.verticalAngle === preset.verticalAngle
+                          ? "bg-primary/20 border-primary text-primary"
+                          : "border-border text-secondary hover:bg-primary/5 hover:border-secondary"
+                      )}
+                      title={`H: ${preset.horizontalAngle}°, V: ${preset.verticalAngle}°`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
-                   Horizontal Angle ({settings.multiAngle.horizontalAngle}°)
-                 </label>
-                 <input
-                   type="range"
-                   min="0"
-                   max="360"
-                   value={settings.multiAngle.horizontalAngle}
-                   onChange={(e) => setSettings(s => ({ ...s, multiAngle: { ...s.multiAngle, horizontalAngle: parseInt(e.target.value) } }))}
-                   className="w-full accent-primary bg-primary/10 h-1 rounded-full appearance-none"
-                 />
-               </div>
+              <hr className="border-border/30" />
+
+              {/* Horizontal Angle (Camera Rotation) */}
+              <AngleSlider
+                label="Camera Rotation"
+                value={settings.multiAngle.horizontalAngle}
+                onChange={(v) => setSettings(s => ({
+                  ...s,
+                  multiAngle: { ...s.multiAngle, horizontalAngle: v }
+                }))}
+                min={-180}
+                max={180}
+                step={1}
+                valueDisplay={formatHorizontalAngle(settings.multiAngle.horizontalAngle)}
+                showCenterMark
+                centerValue={0}
+                minLabel="Left"
+                maxLabel="Right"
+              />
+
+              {/* Vertical Angle (Camera Elevation) */}
+              <AngleSlider
+                label="Camera Elevation"
+                value={settings.multiAngle.verticalAngle}
+                onChange={(v) => setSettings(s => ({
+                  ...s,
+                  multiAngle: { ...s.multiAngle, verticalAngle: v }
+                }))}
+                min={-30}
+                max={90}
+                step={1}
+                valueDisplay={formatVerticalAngle(settings.multiAngle.verticalAngle)}
+                showCenterMark
+                centerValue={0}
+                minLabel="Low"
+                maxLabel="Top"
+              />
+
+              {/* Zoom (Camera Distance) */}
+              <AngleSlider
+                label="Camera Distance"
+                value={settings.multiAngle.zoom}
+                onChange={(v) => setSettings(s => ({
+                  ...s,
+                  multiAngle: { ...s.multiAngle, zoom: v }
+                }))}
+                min={0}
+                max={10}
+                step={0.5}
+                valueDisplay={formatZoom(settings.multiAngle.zoom)}
+                showCenterMark
+                centerValue={5}
+                minLabel="Wide"
+                maxLabel="Close"
+              />
             </div>
           )}
 
@@ -451,7 +534,7 @@ export function InspectorPanel({
           ) : (
              <Sparkles className="h-4 w-4 mr-2" />
           )}
-          {mode === 'generate' ? 'Generate' : mode === 'refine' ? 'Refine' : mode === 'upscale' ? 'Upscale' : 'Render 3D'}
+          {mode === 'generate' ? 'Generate' : mode === 'refine' ? 'Refine' : mode === 'upscale' ? 'Upscale' : 'Move Camera'}
         </Button>
       </div>
     </div>

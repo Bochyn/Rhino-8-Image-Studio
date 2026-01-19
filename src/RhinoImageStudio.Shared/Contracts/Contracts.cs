@@ -72,11 +72,12 @@ public record RefineRequest(
 
 public record MultiAngleRequest(
     Guid ProjectId,
-    Guid SourceGenerationId,
-    double HorizontalAngle = 0,    // 0-360 degrees
-    double VerticalAngle = 0,      // -30 to 90 degrees
-    double Zoom = 5,               // 0-10
-    double LoraScale = 0.8,        // 0-1
+    Guid? SourceGenerationId = null,  // Either generation or capture must be provided
+    Guid? SourceCaptureId = null,
+    double HorizontalAngle = 0,       // 0-360 degrees
+    double VerticalAngle = 0,         // -30 to 90 degrees
+    double Zoom = 5,                  // 0-10
+    double LoraScale = 0.8,           // 0-1
     int NumImages = 1
 );
 
