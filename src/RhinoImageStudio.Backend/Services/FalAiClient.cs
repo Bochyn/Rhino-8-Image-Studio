@@ -26,7 +26,7 @@ public class FalAiClient : IFalAiClient
     private readonly JsonSerializerOptions _jsonOptions;
 
     private const string FalQueueBaseUrl = "https://queue.fal.run";
-    private const string FalStorageUrl = "https://rest.alpha.fal.ai/storage/upload";
+    private const string FalRestApiUrl = "https://rest.alpha.fal.ai";
 
     public FalAiClient(
         HttpClient httpClient,
@@ -63,24 +63,45 @@ public class FalAiClient : IFalAiClient
 
     public async Task<string> UploadImageAsync(byte[] imageData, string fileName, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Uploading image to fal.ai storage: {FileName}", fileName);
+        _logger.LogInformation("Uploading image to fal.ai storage: {FileName} ({Size} bytes)", fileName, imageData.Length);
 
-        using var content = new MultipartFormDataContent();
-        using var imageContent = new ByteArrayContent(imageData);
-        imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
-        content.Add(imageContent, "file", fileName);
+        // Step 1: Initiate upload to get presigned URL
+        var initiateUrl = $"{FalRestApiUrl}/storage/upload/initiate?storage_type=fal-cdn-v3";
+        var initiateRequest = await CreateRequestAsync(HttpMethod.Post, initiateUrl);
 
-        var request = await CreateRequestAsync(HttpMethod.Post, FalStorageUrl);
-        request.Content = content;
+        var contentType = fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg";
+        var initiatePayload = new { file_name = fileName, content_type = contentType };
+        initiateRequest.Content = new StringContent(
+            JsonSerializer.Serialize(initiatePayload, _jsonOptions),
+            Encoding.UTF8,
+            "application/json"
+        );
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        var initiateResponse = await _httpClient.SendAsync(initiateRequest, cancellationToken);
+        initiateResponse.EnsureSuccessStatusCode();
 
-        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        var uploadResult = JsonSerializer.Deserialize<FalUploadResponse>(responseJson, _jsonOptions);
+        var initiateJson = await initiateResponse.Content.ReadAsStringAsync(cancellationToken);
+        var initiateResult = JsonSerializer.Deserialize<FalUploadInitiateResponse>(initiateJson, _jsonOptions);
 
-        _logger.LogInformation("Image uploaded successfully: {Url}", uploadResult?.Url);
-        return uploadResult?.Url ?? throw new InvalidOperationException("Failed to get upload URL");
+        if (string.IsNullOrEmpty(initiateResult?.UploadUrl) || string.IsNullOrEmpty(initiateResult?.FileUrl))
+        {
+            throw new InvalidOperationException("Failed to initiate upload: missing URLs in response");
+        }
+
+        _logger.LogInformation("Upload initiated, uploading to presigned URL...");
+
+        // Step 2: PUT the file to the presigned URL
+        using var uploadContent = new ByteArrayContent(imageData);
+        uploadContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+        var uploadRequest = new HttpRequestMessage(HttpMethod.Put, initiateResult.UploadUrl);
+        uploadRequest.Content = uploadContent;
+
+        var uploadResponse = await _httpClient.SendAsync(uploadRequest, cancellationToken);
+        uploadResponse.EnsureSuccessStatusCode();
+
+        _logger.LogInformation("Image uploaded successfully: {Url}", initiateResult.FileUrl);
+        return initiateResult.FileUrl;
     }
 
     public async Task<FalQueueResponse> SubmitAsync(string modelId, object input, CancellationToken cancellationToken = default)
@@ -144,6 +165,11 @@ public class FalAiClient : IFalAiClient
 }
 
 // Response DTOs for fal.ai API
+
+public record FalUploadInitiateResponse(
+    [property: JsonPropertyName("upload_url")] string UploadUrl,
+    [property: JsonPropertyName("file_url")] string FileUrl
+);
 
 public record FalUploadResponse(
     [property: JsonPropertyName("url")] string Url

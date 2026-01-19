@@ -230,15 +230,19 @@ export const TOPAZ_MODELS_LIST = [
   { value: 'CG', label: 'CG' },
 ];
 
+// UI-friendly presets: horizontalAngle uses -180..+180 range
 export const MULTI_ANGLE_PRESETS = [
-  { label: 'Front', horizontalAngle: 0, verticalAngle: 0 },
-  { label: 'Right Side', horizontalAngle: 90, verticalAngle: 0 },
-  { label: 'Back', horizontalAngle: 180, verticalAngle: 0 },
-  { label: 'Left Side', horizontalAngle: 270, verticalAngle: 0 },
-  { label: 'Top Down', horizontalAngle: 0, verticalAngle: 90 },
-  { label: '3/4 View', horizontalAngle: 45, verticalAngle: 30 },
-  { label: 'Low Angle', horizontalAngle: 0, verticalAngle: -30 },
+  { label: 'Front', horizontalAngle: 0, verticalAngle: 0, zoom: 5 },
+  { label: 'Right', horizontalAngle: 90, verticalAngle: 0, zoom: 5 },
+  { label: 'Back', horizontalAngle: 180, verticalAngle: 0, zoom: 5 },
+  { label: 'Left', horizontalAngle: -90, verticalAngle: 0, zoom: 5 },
+  { label: '3/4 Right', horizontalAngle: 45, verticalAngle: 20, zoom: 5 },
+  { label: '3/4 Left', horizontalAngle: -45, verticalAngle: 20, zoom: 5 },
+  { label: 'Top Down', horizontalAngle: 0, verticalAngle: 90, zoom: 5 },
+  { label: 'Low Angle', horizontalAngle: 0, verticalAngle: -30, zoom: 5 },
 ] as const;
+
+export type MultiAnglePreset = typeof MULTI_ANGLE_PRESETS[number];
 
 // Unified Settings Object for State
 export interface AllModelSettings {
@@ -331,4 +335,60 @@ export function getResolutionFromAspectRatio(aspectRatio: string, baseDimension 
       height: baseDimension,
     };
   }
+}
+
+// ============================================================================
+// QWEN MULTI-ANGLE HELPERS
+// ============================================================================
+
+/**
+ * Convert UI horizontal angle (-180 to +180) to API angle (0-360)
+ * UI: -90=left, 0=front, +90=right, ±180=back
+ * API: 0=front, 90=right, 180=back, 270=left
+ */
+export function horizontalUiToApi(uiAngle: number): number {
+  return ((uiAngle % 360) + 360) % 360;
+}
+
+/**
+ * Convert API horizontal angle (0-360) to UI angle (-180 to +180)
+ * Useful for loading presets or saved values
+ */
+export function horizontalApiToUi(apiAngle: number): number {
+  const normalized = ((apiAngle % 360) + 360) % 360;
+  if (normalized > 180) return normalized - 360;
+  return normalized;
+}
+
+/**
+ * Format horizontal angle for display
+ * Returns human-readable string like "Left 45°" or "Front"
+ */
+export function formatHorizontalAngle(uiAngle: number): string {
+  if (uiAngle === 0) return 'Front';
+  if (uiAngle === 90) return 'Right 90°';
+  if (uiAngle === -90) return 'Left 90°';
+  if (uiAngle === 180 || uiAngle === -180) return 'Back';
+  if (uiAngle > 0) return `Right ${uiAngle}°`;
+  return `Left ${Math.abs(uiAngle)}°`;
+}
+
+/**
+ * Format vertical angle for display
+ */
+export function formatVerticalAngle(angle: number): string {
+  if (angle === 0) return 'Eye Level';
+  if (angle === 90) return 'Top';
+  if (angle === -30) return 'Low';
+  if (angle > 0) return `Up ${angle}°`;
+  return `Down ${Math.abs(angle)}°`;
+}
+
+/**
+ * Format zoom for display
+ */
+export function formatZoom(zoom: number): string {
+  if (zoom <= 2) return `Wide (${zoom.toFixed(1)})`;
+  if (zoom <= 6) return `Medium (${zoom.toFixed(1)})`;
+  return `Close (${zoom.toFixed(1)})`;
 }

@@ -47,12 +47,18 @@ Wszystkie wersje są zapisywane w Historii. Możesz do nich wrócić w każdej c
 
 ## Funkcje Zaawansowane
 
-### Multi-angle (Wielokrotne kąty)
-Ta funkcja pozwala wygenerować spójne widoki tego samego obiektu z różnych stron.
-1. Wybierz wygenerowany obraz.
-2. Przejdź do trybu **Angles**.
-3. Ustaw parametry (np. Azimuth, Elevation).
-4. Kliknij Generate.
+### Pan (Move Camera)
+Ta funkcja pozwala wygenerować widoki obiektu z różnych kątów kamery, zachowując spójność wizualną.
+
+1. Wybierz capture lub wygenerowany obraz jako źródło.
+2. Przejdź do zakładki **Pan** w panelu Editor.
+3. Użyj **Quick Presets** (Front, Right, Back, Left, 3/4, Top, Low) lub dostosuj ręcznie:
+   - **Camera Rotation** (-180° do +180°): obrót kamery wokół obiektu (lewo/prawo)
+   - **Camera Elevation** (-30° do +90°): wysokość kamery (nisko/wysoko)
+   - **Camera Distance** (0-10): odległość kamery (Wide/Medium/Close)
+4. Kliknij **Move Camera**.
+
+> **Tip:** Przycisk **Reset** przywraca domyślne ustawienia (Front, Eye Level, Medium distance).
 
 ### Upscaling (Powiększanie)
 Aby przygotować obraz do prezentacji:

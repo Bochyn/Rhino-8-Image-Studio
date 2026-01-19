@@ -373,13 +373,37 @@ public class JobProcessor : BackgroundService
         var request = JsonSerializer.Deserialize<MultiAngleRequest>(job.RequestJson)
             ?? throw new InvalidOperationException("Invalid multi-angle request");
 
-        var sourceGeneration = await dbContext.Generations.FindAsync(new object[] { request.SourceGenerationId }, cancellationToken)
-            ?? throw new InvalidOperationException("Source generation not found");
+        // Support both generation and capture as source
+        string? sourceFilePath = null;
+        Guid? sourceCaptureId = request.SourceCaptureId;
+        Guid? sourceGenerationId = request.SourceGenerationId;
+        Guid sourceId;
+
+        if (request.SourceGenerationId.HasValue)
+        {
+            var sourceGeneration = await dbContext.Generations.FindAsync(new object[] { request.SourceGenerationId.Value }, cancellationToken)
+                ?? throw new InvalidOperationException("Source generation not found");
+            sourceFilePath = sourceGeneration.FilePath;
+            sourceCaptureId = sourceGeneration.SourceCaptureId;
+            sourceId = sourceGeneration.Id;
+        }
+        else if (request.SourceCaptureId.HasValue)
+        {
+            var sourceCapture = await dbContext.Captures.FindAsync(new object[] { request.SourceCaptureId.Value }, cancellationToken)
+                ?? throw new InvalidOperationException("Source capture not found");
+            sourceFilePath = sourceCapture.FilePath;
+            sourceCaptureId = sourceCapture.Id;
+            sourceId = sourceCapture.Id;
+        }
+        else
+        {
+            throw new InvalidOperationException("Either SourceGenerationId or SourceCaptureId must be provided");
+        }
 
         BroadcastProgress(job, 10, "Preparing input...");
 
-        var maImageData = await storage.ReadFileAsync(sourceGeneration.FilePath!, cancellationToken);
-        var maImageUrl = await falClient.UploadImageAsync(maImageData, $"{sourceGeneration.Id}.png", cancellationToken);
+        var maImageData = await storage.ReadFileAsync(sourceFilePath!, cancellationToken);
+        var maImageUrl = await falClient.UploadImageAsync(maImageData, $"{sourceId}.png", cancellationToken);
 
         var maFalInput = new Dictionary<string, object>
         {
@@ -402,8 +426,8 @@ public class JobProcessor : BackgroundService
 
         var maGeneration = await SaveGenerationResultAsync(
             job.ProjectId,
-            sourceGeneration.SourceCaptureId,
-            request.SourceGenerationId,
+            sourceCaptureId,
+            sourceGenerationId,
             JobType.MultiAngle,
             maResult.Prompt,
             maResult,

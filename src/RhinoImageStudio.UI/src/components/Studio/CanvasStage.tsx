@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/Common/Button';
 import { CompareSlider } from '@/components/Studio/CompareSlider';
+import { SmoothProgress } from '@/components/Common/SmoothProgress';
 import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save } from 'lucide-react';
 import { Job } from '@/lib/types';
 
@@ -129,23 +130,8 @@ export function CanvasStage({
                 </p>
               </div>
 
-              {/* Progress Bar */}
-              <div className="w-full space-y-2">
-                <div className="relative h-2 bg-primary/10 rounded-full overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${activeJob?.progress ?? 0}%` }}
-                  />
-                  {/* Shimmer effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent animate-shimmer" />
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-accent">Progress</span>
-                  <span className="text-primary font-medium tabular-nums">
-                    {activeJob?.progress ?? 0}%
-                  </span>
-                </div>
-              </div>
+              {/* Progress Bar with smooth animation */}
+              <SmoothProgress targetValue={activeJob?.progress ?? 0} />
 
               {/* Phase Indicators */}
               <div className="flex items-center gap-2 text-[10px] text-accent">
