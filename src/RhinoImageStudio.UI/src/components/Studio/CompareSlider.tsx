@@ -3,8 +3,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 interface CompareSliderProps {
   leftImage: string;
   rightImage: string;
-  leftLabel?: string;
-  rightLabel?: string;
   className?: string;
   initialPosition?: number;
 }
@@ -12,8 +10,6 @@ interface CompareSliderProps {
 export function CompareSlider({
   leftImage,
   rightImage,
-  leftLabel = 'Before',
-  rightLabel = 'After',
   className = '',
   initialPosition = 50,
 }: CompareSliderProps) {
@@ -73,40 +69,26 @@ export function CompareSlider({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full select-none overflow-hidden group ${className}`}
+      className={`relative select-none ${className}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      {/* Right Image (Background/After) */}
+      {/* Right Image (Result) - defines container size */}
       <img
         src={rightImage}
-        alt={rightLabel}
-        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+        alt="Result"
+        className="block max-w-full max-h-[75vh] w-auto h-auto object-contain pointer-events-none select-none"
         draggable={false}
       />
 
-      {/* Right Label */}
-      <div className="absolute top-4 right-4 bg-background/70 text-primary text-xs px-2 py-1 rounded backdrop-blur-sm pointer-events-none z-10">
-        {rightLabel}
-      </div>
-
-      {/* Left Image (Foreground/Before) - Clipped */}
-      <div
-        className="absolute inset-0 h-full overflow-hidden pointer-events-none select-none"
-        style={{ width: `${position}%` }}
-      >
-        <img
-          src={leftImage}
-          alt={leftLabel}
-          className="absolute inset-0 w-full h-full object-contain max-w-none"
-          style={{ width: containerRef.current?.offsetWidth || '100%' }}
-          draggable={false}
-        />
-        {/* Left Label */}
-        <div className="absolute top-4 left-4 bg-background/70 text-primary text-xs px-2 py-1 rounded backdrop-blur-sm z-10">
-          {leftLabel}
-        </div>
-      </div>
+      {/* Left Image (Original) - overlaid with clip-path */}
+      <img
+        src={leftImage}
+        alt="Original"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+        draggable={false}
+      />
 
       {/* Slider Handle */}
       <div

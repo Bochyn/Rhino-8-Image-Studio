@@ -174,14 +174,18 @@ export function CanvasStage({
             }}
           >
             {compareMode && originalImage ? (
-              <div className="relative w-[800px] max-w-full aspect-[4/3]">
-                 <CompareSlider
-                   leftImage={originalImage}
-                   rightImage={currentImage}
-                   leftLabel="Original"
-                   rightLabel="Result"
-                   className="rounded-sm shadow-2xl ring-1 ring-border"
-                 />
+              <div className="flex flex-col items-center gap-2">
+                {/* Labels above comparison */}
+                <div className="flex items-center justify-between w-full px-1">
+                  <span className="text-xs font-medium text-secondary uppercase tracking-wide">Original</span>
+                  <span className="text-xs font-medium text-secondary uppercase tracking-wide">Result</span>
+                </div>
+                {/* Comparison slider */}
+                <CompareSlider
+                  leftImage={originalImage}
+                  rightImage={currentImage}
+                  className="rounded-sm shadow-2xl"
+                />
               </div>
             ) : (
               <img

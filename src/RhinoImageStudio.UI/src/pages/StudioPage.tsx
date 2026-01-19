@@ -183,6 +183,31 @@ export function StudioPage() {
     return url || null;
   };
 
+  // Helper to get original image for A/B comparison
+  const getOriginalImage = (): string | null => {
+    if (!selectedItem) return null;
+
+    // Captures have no "original" - they ARE the original
+    if ('viewName' in selectedItem) return null;
+
+    // Generation - find source capture or parent generation
+    const generation = selectedItem as Generation;
+
+    // Priority 1: Source capture (direct input)
+    if (generation.sourceCaptureId) {
+      const sourceCapture = captures.find(c => c.id === generation.sourceCaptureId);
+      if (sourceCapture) return sourceCapture.imageUrl;
+    }
+
+    // Priority 2: Parent generation (refinement chain)
+    if (generation.parentGenerationId) {
+      const parentGen = generations.find(g => g.id === generation.parentGenerationId);
+      if (parentGen?.imageUrl) return parentGen.imageUrl;
+    }
+
+    return null;
+  };
+
   // Find active job for progress display
   const activeJob = jobs.find(j => j.status === 'running' || j.status === 'Running') || null;
 
@@ -243,7 +268,7 @@ export function StudioPage() {
         <div className="flex-1 min-w-0">
           <CanvasStage
             currentImage={getDisplayImage()}
-            originalImage={null}
+            originalImage={getOriginalImage()}
             isProcessing={!!activeJob}
             activeJob={activeJob}
             onDownload={handleDownload}
