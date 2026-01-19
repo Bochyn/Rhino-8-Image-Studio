@@ -37,11 +37,54 @@ graph TD
   - Baza danych (Entity Framework + SQLite) - historia sesji, promptów.
 
 ### 3. Frontend UI (`src/RhinoImageStudio.UI`)
-- **Technologia**: React, Vite, Tailwind CSS.
+- **Technologia**: React 18, Vite, Tailwind CSS.
+- **Czcionka**: Sawarabi Gothic (Google Fonts).
 - **Zadania**:
   - Interfejs użytkownika.
   - Wizualizacja postępu.
   - Edytory parametrów.
+
+## Design System
+
+### Paleta Kolorów
+
+Aplikacja używa custom blue-gray palety z pełnym wsparciem Light/Dark mode.
+
+| Token | Light Mode | Dark Mode | Użycie |
+|-------|------------|-----------|--------|
+| `text` | `#4b5563` | `#9ca6b4` | Główny tekst |
+| `background` | `#f3f4f6` | `#090a0c` | Tło aplikacji |
+| `primary` | `#1f2937` | `#c8d2e0` | Nagłówki, CTA |
+| `secondary` | `#48566a` | `#95a3b7` | Tekst drugorzędny |
+| `accent` | `#9ca4b0` | `#4f5763` | Stonowane akcenty |
+| `panel-bg` | `#ffffff` | `#0f1115` | Panele boczne |
+| `card-bg` | `#f9fafb` | `#161a1f` | Karty, overlay |
+| `border` | `#e5e7eb` | `#252a31` | Obramowania |
+
+### Typografia
+
+**Czcionka:** Sawarabi Gothic
+
+| Rozmiar | Wartość |
+|---------|---------|
+| `sm` | 0.750rem |
+| `base` | 1rem |
+| `xl` | 1.333rem |
+| `2xl` | 1.777rem |
+| `3xl` | 2.369rem |
+| `4xl` | 3.158rem |
+
+### Użycie w kodzie
+
+```tsx
+// Tailwind classes
+<div className="bg-background text-primary border-border">
+<button className="bg-primary text-background hover:bg-primary/90">
+  CTA Button
+</button>
+```
+
+Pełna specyfikacja w `CLAUDE.md` sekcja 6.
 
 ## Przepływ Danych (Data Flow)
 

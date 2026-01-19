@@ -1,11 +1,11 @@
-# SPEC.md — Rhino Image Studio (Windows)  
-Wersja: 0.2 (MVP Implemented + Refined UI)  
+# SPEC.md — Rhino Image Studio (Windows)
+Wersja: 0.3 (MVP + UI Redesign)
 Status: Development / Open Source Preparation
 
 ## 1. Streszczenie (Executive Summary)
-**Rhino Image Studio** to wtyczka dla Rhinoceros (Windows), która zamienia widok z viewportu (shaded / wireframe / inne display modes) w wysokiej jakości wizualizacje generowane przez modele AI. Użytkownik pracuje w Rhino jak zwykle, a w dockowanym panelu otrzymuje nowoczesny, webowy interfejs do generowania, iteracji, tworzenia wariantów, “multi-angle” i finalnego upscalowania obrazów.
+**Rhino Image Studio** to wtyczka dla Rhinoceros (Windows), która zamienia widok z viewportu (shaded / wireframe / inne display modes) w wysokiej jakości wizualizacje generowane przez modele AI. Użytkownik pracuje w Rhino jak zwykle, a w dockowanym panelu otrzymuje nowoczesny, webowy interfejs do generowania, iteracji, tworzenia wariantów, "multi-angle" i finalnego upscalowania obrazów.
 
-## 2. Status Implementacji (2026-01-17)
+## 2. Status Implementacji (2026-01-19)
 
 ### Zrealizowane (MVP)
 - [x] **Rhino Plugin**: Panel dokowany, komunikacja z backendem.
@@ -16,6 +16,7 @@ Status: Development / Open Source Preparation
     - Multi-angle: Qwen (przez fal.ai).
     - Upscaling: RealESRGAN/inne (przez fal.ai).
 - [x] **Dokumentacja**: Pełna struktura w folderze `/docs`.
+- [x] **UI Design System**: Custom blue-gray paleta + Sawarabi Gothic.
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).
@@ -54,7 +55,74 @@ Aplikacja wykorzystuje chmurę fal.ai do przetwarzania:
 
 ---
 
-## 6. Notatki Rozwojowe (Internal)
+## 6. Design System (UI Standards)
+
+### Paleta Kolorów
+
+#### Light Mode
+| Token | Hex | Użycie |
+|-------|-----|--------|
+| text | `#4b5563` | Główny tekst |
+| background | `#f3f4f6` | Tło aplikacji |
+| primary | `#1f2937` | Nagłówki, CTA buttons |
+| secondary | `#48566a` | Tekst drugorzędny |
+| accent | `#9ca4b0` | Stonowane akcenty, ikony |
+
+#### Dark Mode
+| Token | Hex | Użycie |
+|-------|-----|--------|
+| text | `#9ca6b4` | Główny tekst |
+| background | `#090a0c` | Tło aplikacji (prawie czarny) |
+| primary | `#c8d2e0` | Nagłówki, CTA buttons |
+| secondary | `#95a3b7` | Tekst drugorzędny |
+| accent | `#4f5763` | Stonowane akcenty, obramowania |
+
+#### Kolory pochodne (Dark Mode)
+| Token | Hex | Użycie |
+|-------|-----|--------|
+| panel-bg | `#0f1115` | Panele boczne |
+| card-bg | `#161a1f` | Karty, tile, overlay |
+| card-hover | `#1e2329` | Stany hover |
+| border | `#252a31` | Obramowania |
+
+### Typografia
+
+**Czcionka:** Sawarabi Gothic (Google Fonts)
+
+| Token | Rozmiar |
+|-------|---------|
+| xs | 0.625rem |
+| sm | 0.750rem |
+| base | 1rem |
+| lg | 1.125rem |
+| xl | 1.333rem |
+| 2xl | 1.777rem |
+| 3xl | 2.369rem |
+| 4xl | 3.158rem |
+| 5xl | 4.210rem |
+
+**Wagi:**
+- `normal`: 400
+- `bold`: 700
+
+### Użycie w CSS
+
+```css
+/* Kolory */
+.element {
+  color: var(--text);
+  background: var(--background);
+  border-color: var(--border);
+}
+
+/* Tailwind classes */
+<div className="bg-background text-primary border-border">
+<button className="bg-primary text-background">CTA</button>
+```
+
+---
+
+## 7. Notatki Rozwojowe (Internal)
 - Decyzja o przejściu na `WebView2` zamiast natywnego Eto.Forms UI była kluczowa dla elastyczności interfejsu.
 - Aktualny stack UI: React 18 + Tailwind + Lucide Icons.
 - Wymagany refactoring obsługi błędów sieciowych (retry logic).

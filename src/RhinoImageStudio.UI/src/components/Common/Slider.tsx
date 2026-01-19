@@ -19,7 +19,7 @@ const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
     return (
       <div className={cn("w-full space-y-2", className)}>
         {(label || suffix) && (
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs text-secondary">
             {label && <span>{label}</span>}
             {suffix && <span>{value}{suffix}</span>}
           </div>

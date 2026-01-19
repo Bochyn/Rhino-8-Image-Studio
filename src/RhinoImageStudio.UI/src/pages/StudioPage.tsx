@@ -21,10 +21,10 @@ export function StudioPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
-  
+
   // Unified selection state
   const [selectedItem, setSelectedItem] = useState<Capture | Generation | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -42,7 +42,7 @@ export function StudioPage() {
       setProject(projectData);
       setCaptures(capturesData);
       setGenerations(generationsData);
-      
+
       // Auto-select logic if nothing selected
       if (!selectedItem) {
         if (generationsData.length > 0) {
@@ -85,15 +85,12 @@ export function StudioPage() {
     const displayMode = 'Shaded';
 
     if (!projectId || !rhino) return;
-    
+
     setIsCapturing(true);
     try {
       const captureId = await rhino.CaptureViewport(projectId, width, height, displayMode);
       if (captureId) {
         await loadData();
-        // Since loadData is async and state updates batch, we might not find it immediately in 'captures'
-        // But the next render after loadData will have it. 
-        // We can manually fetch the new list to be sure or just wait.
         const newCaptures = await api.captures.list(projectId);
         setCaptures(newCaptures);
         const newCapture = newCaptures.find(c => c.id === captureId);
@@ -174,35 +171,28 @@ export function StudioPage() {
     return url || null;
   };
 
-  // Determine original/source image for comparison
-  // Ideally, if selectedItem is a Generation, its source was a Capture.
-  // But we don't have that link easily available in the frontend types yet without traversing.
-  // For now, we compare against nothing or handle it if we had the data.
-  // A simple hack: If we have a selected Generation, and we have Captures, maybe we can find one? No.
-  // We'll leave 'originalImage' undefined for generations for now unless we store it.
-
   // Find active job for progress display
   const activeJob = jobs.find(j => j.status === 'running' || j.status === 'Running') || null;
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[hsl(var(--app-bg))]">
-        <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--accent-cta))]" />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[hsl(var(--app-bg))] text-white overflow-hidden">
+    <div className="flex h-screen flex-col bg-background text-text overflow-hidden">
       {/* App Header */}
-      <header className="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[hsl(var(--panel-bg))] flex-shrink-0 z-10">
+      <header className="h-14 flex items-center justify-between px-4 border-b border-border/50 bg-panel flex-shrink-0 z-10">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="hover:bg-white/5">
-            <Home className="h-5 w-5 text-white/70" />
+          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="hover:bg-primary/5">
+            <Home className="h-5 w-5 text-secondary" />
           </Button>
           <div className="flex items-center gap-3">
-             <div className="h-6 w-px bg-white/10" />
-             <h1 className="font-medium text-sm tracking-wide">{project?.name || 'Untitled Project'}</h1>
+             <div className="h-6 w-px bg-border" />
+             <h1 className="font-medium text-sm tracking-wide text-primary">{project?.name || 'Untitled Project'}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -212,15 +202,15 @@ export function StudioPage() {
             </div>
           )}
           <ThemeSwitch />
-          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} className="hover:bg-white/5">
-            <Settings className="h-5 w-5 text-white/70" />
+          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} className="hover:bg-primary/5">
+            <Settings className="h-5 w-5 text-secondary" />
           </Button>
         </div>
       </header>
 
       {/* Main Workspace Grid */}
       <div className="flex-1 flex gap-3 p-3 overflow-hidden">
-        
+
         {/* Left: Assets */}
         <div className={`flex-shrink-0 transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${assetsCollapsed ? 'w-16' : 'w-80'}`}>
           <AssetsPanel
@@ -241,7 +231,7 @@ export function StudioPage() {
         <div className="flex-1 min-w-0">
           <CanvasStage
             currentImage={getDisplayImage()}
-            originalImage={null} // TODO: Implement source tracking for proper comparison
+            originalImage={null}
             isProcessing={!!activeJob}
             activeJob={activeJob}
             onDownload={handleDownload}
@@ -260,9 +250,9 @@ export function StudioPage() {
 
       </div>
 
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
       />
     </div>
   );

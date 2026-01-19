@@ -103,7 +103,9 @@ export const api = {
     listAll: async (): Promise<Generation[]> => {
       const res = await fetch(`${API_BASE}/generations`);
       if (!res.ok) throw new Error('Failed to fetch all generations');
-      return res.json();
+      const data = await res.json();
+      // API returns { generations: [], totalCount: number }
+      return data.generations || [];
     },
     create: async (data: GenerateRequest): Promise<Generation> => {
       const res = await fetch(`${API_BASE}/generate`, {
