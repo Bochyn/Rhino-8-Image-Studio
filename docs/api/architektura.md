@@ -86,12 +86,37 @@ Aplikacja używa custom blue-gray palety z pełnym wsparciem Light/Dark mode.
 
 Pełna specyfikacja w `CLAUDE.md` sekcja 6.
 
+## Konfiguracja Modeli AI
+
+Każdy model AI ma własną konfigurację dostępnych opcji. System jest **model-aware** - UI automatycznie dostosowuje dostępne opcje do wybranego modelu.
+
+### Struktura konfiguracji (`models.ts`)
+
+```typescript
+interface ModelInfo {
+  id: string;
+  aspectRatios?: AspectRatioOption[];  // Dostępne proporcje obrazu
+  resolutions?: ResolutionOption[];     // Dostępne rozdzielczości
+}
+```
+
+### Gemini 3 Pro (aktualny)
+| Aspect Ratios | Resolutions |
+|---------------|-------------|
+| 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 | 1K (1024px), 2K (2048px), 4K (4096px) |
+
+### Viewport Capture Synchronizacja
+
+Capture automatycznie używa wymiarów zgodnych z wybranymi ustawieniami w edytorze:
+- `InspectorPanel` → ustawienia AR/Resolution → `StudioPage` → `handleCapture()`
+- Funkcja `calculateDimensions()` przelicza piksele na podstawie AR i Resolution
+
 ## Przepływ Danych (Data Flow)
 
-1. **Capture**: Plugin przechwytuje bitmapę -> wysyła POST do Backendu.
+1. **Capture**: Plugin przechwytuje bitmapę (wymiary z AR/Resolution) -> wysyła POST do Backendu.
 2. **Job**: Backend tworzy zadanie, zapisuje obraz na dysku, dodaje wpis do DB.
-3. **Generate**: Backend wysyła request do fal.ai. Frontend odpytuje (lub dostaje SSE) o status.
-4. **Result**: Fal.ai zwraca URL obrazu -> Backend go pobiera i zapisuje lokalnie -> Frontend wyświetla.
+3. **Generate**: Backend wysyła request do fal.ai/Gemini. Frontend odpytuje (lub dostaje SSE) o status.
+4. **Result**: API zwraca URL obrazu -> Backend go pobiera i zapisuje lokalnie -> Frontend wyświetla.
 
 ## Struktura Bazy Danych
 

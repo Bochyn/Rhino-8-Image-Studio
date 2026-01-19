@@ -4,9 +4,51 @@
  */
 
 // ============================================================================
-// SHARED CONSTANTS
+// SHARED TYPES FOR MODEL OPTIONS
 // ============================================================================
 
+export interface AspectRatioOption {
+  value: string;      // Value sent to API (e.g., "1:1", "square_hd")
+  label: string;      // Display label for user
+  ratio?: number;     // Numeric ratio (w/h) for pixel calculation, optional
+}
+
+export interface ResolutionOption {
+  value: string;      // Value sent to API (e.g., "1K", "2K")
+  label: string;      // Display label
+  pixels: number;     // Base dimension in pixels
+}
+
+// ============================================================================
+// MODEL-SPECIFIC OPTIONS
+// ============================================================================
+
+// Gemini API supported aspect ratios (per official documentation)
+const GEMINI_ASPECT_RATIOS: AspectRatioOption[] = [
+  { value: '1:1', label: '1:1', ratio: 1 },
+  { value: '2:3', label: '2:3', ratio: 2/3 },
+  { value: '3:2', label: '3:2', ratio: 3/2 },
+  { value: '3:4', label: '3:4', ratio: 3/4 },
+  { value: '4:3', label: '4:3', ratio: 4/3 },
+  { value: '4:5', label: '4:5', ratio: 4/5 },
+  { value: '5:4', label: '5:4', ratio: 5/4 },
+  { value: '9:16', label: '9:16', ratio: 9/16 },
+  { value: '16:9', label: '16:9', ratio: 16/9 },
+  { value: '21:9', label: '21:9', ratio: 21/9 },
+];
+
+// Gemini API supported resolutions (uppercase K required)
+const GEMINI_RESOLUTIONS: ResolutionOption[] = [
+  { value: '1K', label: '1K', pixels: 1024 },
+  { value: '2K', label: '2K', pixels: 2048 },
+  { value: '4K', label: '4K', pixels: 4096 },
+];
+
+// ============================================================================
+// SHARED CONSTANTS (legacy, kept for compatibility)
+// ============================================================================
+
+/** @deprecated Use model-specific aspectRatios instead */
 export const ASPECT_RATIOS = [
   { value: 'auto', label: 'Auto' },
   { value: '21:9', label: 'Ultra Wide (21:9)' },
@@ -49,6 +91,9 @@ export interface ModelInfo {
   shortName: string;
   description: string;
   capabilities: ModelCapabilities;
+  // Model-specific options
+  aspectRatios?: AspectRatioOption[];
+  resolutions?: ResolutionOption[];
 }
 
 export const MODELS: Record<string, ModelInfo> = {
@@ -65,6 +110,8 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: true,
       supportsStrength: true,
     },
+    aspectRatios: GEMINI_ASPECT_RATIOS,
+    resolutions: GEMINI_RESOLUTIONS,
   },
   'fal-ai/qwen-image-edit-2511-multiple-angles': {
     id: 'fal-ai/qwen-image-edit-2511-multiple-angles',
@@ -119,9 +166,10 @@ export const AVAILABLE_MODELS: Record<ModeType, string[]> = {
 // SETTINGS SCHEMAS & TYPES
 // ============================================================================
 
-// NANO BANANA / GEMINI
+// GEMINI / Generation Settings
 export interface GenerationSettings {
   aspectRatio: string;
+  resolution: string;
   numImages: number;
   outputFormat: 'jpeg' | 'png';
   seed?: number;
@@ -131,6 +179,7 @@ export interface GenerationSettings {
 
 export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   aspectRatio: '1:1',
+  resolution: '1K',
   numImages: 1,
   outputFormat: 'jpeg',
   strength: 0.75,
@@ -212,16 +261,64 @@ export function getModelInfo(id: string): ModelInfo | undefined {
   return MODELS[id];
 }
 
+/**
+ * Calculate pixel dimensions from aspect ratio and resolution for a specific model
+ */
+export function calculateDimensions(
+  aspectRatio: string,
+  resolution: string,
+  modelId: string
+): { width: number; height: number } {
+  const model = MODELS[modelId];
+
+  // Find resolution pixels from model config
+  const resOption = model?.resolutions?.find(r => r.value === resolution);
+  const baseDimension = resOption?.pixels || 1024;
+
+  // Find aspect ratio from model config
+  const arOption = model?.aspectRatios?.find(a => a.value === aspectRatio);
+
+  // If we have a numeric ratio from model config, use it
+  if (arOption?.ratio) {
+    const ratio = arOption.ratio;
+    if (ratio >= 1) {
+      return {
+        width: baseDimension,
+        height: Math.round(baseDimension / ratio),
+      };
+    } else {
+      return {
+        width: Math.round(baseDimension * ratio),
+        height: baseDimension,
+      };
+    }
+  }
+
+  // Fallback - parse string "W:H"
+  const [w, h] = aspectRatio.split(':').map(Number);
+  if (w && h) {
+    const ratio = w / h;
+    if (ratio >= 1) {
+      return { width: baseDimension, height: Math.round(baseDimension / ratio) };
+    } else {
+      return { width: Math.round(baseDimension * ratio), height: baseDimension };
+    }
+  }
+
+  return { width: baseDimension, height: baseDimension };
+}
+
+/** @deprecated Use calculateDimensions instead */
 export function getResolutionFromAspectRatio(aspectRatio: string, baseDimension = 1024): { width: number; height: number } {
   if (aspectRatio === 'auto') {
     return { width: baseDimension, height: baseDimension };
   }
-  
+
   const [w, h] = aspectRatio.split(':').map(Number);
   if (!w || !h) {
     return { width: baseDimension, height: baseDimension };
   }
-  
+
   const ratio = w / h;
   if (ratio >= 1) {
     return {
