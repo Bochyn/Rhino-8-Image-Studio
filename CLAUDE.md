@@ -17,6 +17,7 @@ Status: Development / Open Source Preparation
     - Upscaling: RealESRGAN/inne (przez fal.ai).
 - [x] **Dokumentacja**: Pełna struktura w folderze `/docs`.
 - [x] **UI Design System**: Custom blue-gray paleta + Sawarabi Gothic.
+- [x] **A/B Comparison**: Porównanie Before/After (viewport vs generacja) ze sliderem.
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).

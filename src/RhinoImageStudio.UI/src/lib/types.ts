@@ -22,6 +22,8 @@ export interface Capture {
 export interface Generation {
   id: string;
   projectId: string;
+  sourceCaptureId?: string;
+  parentGenerationId?: string;
   prompt: string;
   negativePrompt?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
