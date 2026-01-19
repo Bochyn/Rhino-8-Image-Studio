@@ -5,7 +5,7 @@ import { StudioPage } from './pages/StudioPage';
 function App() {
   return (
     <Router>
-      <div className="h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col">
+      <div className="h-screen w-screen bg-background text-text overflow-hidden flex flex-col">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/project/:sessionId" element={<StudioPage />} />

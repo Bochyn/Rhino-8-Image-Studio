@@ -1,13 +1,45 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
+    fontSize: {
+      sm: '0.750rem',
+      base: '1rem',
+      lg: '1.125rem',
+      xl: '1.333rem',
+      '2xl': '1.777rem',
+      '3xl': '2.369rem',
+      '4xl': '3.158rem',
+      '5xl': '4.210rem',
+      // Keep some utility sizes
+      xs: '0.625rem',
+      '[10px]': '10px',
+    },
     extend: {
       fontFamily: {
-        sans: ["Arial", "ui-sans-serif", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)"],
+        body: ["var(--font-body)"],
+        sans: ["var(--font-body)"],
+      },
+      fontWeight: {
+        normal: '400',
+        bold: '700',
+      },
+      colors: {
+        text: "var(--text)",
+        background: "var(--background)",
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+        accent: "var(--accent)",
+        panel: "var(--panel-bg)",
+        card: "var(--card-bg)",
+        "card-hover": "var(--card-hover)",
+        border: "var(--border)",
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
         shimmer: {
@@ -17,32 +49,6 @@ export default {
       },
       animation: {
         shimmer: 'shimmer 2s infinite',
-      },
-      colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        card: "hsl(var(--card))",
-        "card-foreground": "hsl(var(--card-foreground))",
-        popover: "hsl(var(--popover))",
-        "popover-foreground": "hsl(var(--popover-foreground))",
-        primary: "hsl(var(--primary))",
-        "primary-foreground": "hsl(var(--primary-foreground))",
-        secondary: "hsl(var(--secondary))",
-        "secondary-foreground": "hsl(var(--secondary-foreground))",
-        muted: "hsl(var(--muted))",
-        "muted-foreground": "hsl(var(--muted-foreground))",
-        accent: "hsl(var(--accent))",
-        "accent-foreground": "hsl(var(--accent-foreground))",
-        destructive: "hsl(var(--destructive))",
-        "destructive-foreground": "hsl(var(--destructive-foreground))",
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
     },
   },

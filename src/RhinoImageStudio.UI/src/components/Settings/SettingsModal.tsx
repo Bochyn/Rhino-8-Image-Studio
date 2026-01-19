@@ -91,13 +91,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-2xl shadow-xl w-full max-w-lg mx-4">
+      <div className="relative bg-panel border border-border rounded-2xl shadow-xl w-full max-w-lg mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-100">Settings</h2>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-primary">Settings</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
@@ -107,19 +107,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-secondary" />
             </div>
           ) : (
             <>
               {/* Gemini API Key Section - PRIMARY */}
-              <Card className="p-4 bg-gray-800/50 border-emerald-500/30">
+              <Card className="p-4 bg-card border-primary/30">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="h-4 w-4 text-emerald-400" />
-                  <Label className="text-sm font-medium text-gray-100">Gemini API Key</Label>
-                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Primary</span>
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-medium text-primary">Gemini API Key</Label>
+                  <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">Primary</span>
                 </div>
 
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-secondary mb-3">
                   Nano Banana (gemini-2.5-flash-image) - Fast, high-quality image generation
                 </p>
 
@@ -127,8 +127,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="flex items-center gap-2 mb-3">
                   {config?.hasGeminiApiKey ? (
                     <>
-                      <CheckCircle className="h-4 w-4 text-emerald-400" />
-                      <span className="text-sm text-emerald-400">API key configured</span>
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-500">API key configured</span>
                     </>
                   ) : (
                     <>
@@ -145,10 +145,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     placeholder={config?.hasGeminiApiKey ? 'Enter new key to update...' : 'Enter your Gemini API key...'}
                     value={geminiApiKey}
                     onChange={(e) => setGeminiApiKey(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-gray-600 bg-gray-800 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-9 px-3 rounded-lg border border-border bg-card text-sm text-primary placeholder:text-accent focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <Button 
-                    className="w-full bg-emerald-600 hover:bg-emerald-700" 
+                  <Button
+                    className="w-full bg-primary hover:bg-primary/90 text-background"
                     onClick={handleSaveGeminiApiKey}
                     disabled={savingGemini || !geminiApiKey.trim()}
                   >
@@ -164,7 +164,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
 
                 {successGemini && (
-                  <div className="flex items-center gap-2 mt-2 text-emerald-400 text-sm">
+                  <div className="flex items-center gap-2 mt-2 text-green-500 text-sm">
                     <CheckCircle className="h-4 w-4" />
                     API key saved successfully!
                   </div>
@@ -175,7 +175,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-emerald-400 hover:underline mt-3"
+                  className="flex items-center gap-1 text-xs text-primary hover:underline mt-3"
                 >
                   Get your API key at Google AI Studio
                   <ExternalLink className="h-3 w-3" />
@@ -183,14 +183,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </Card>
 
               {/* fal.ai API Key Section - SECONDARY */}
-              <Card className="p-4 bg-gray-800/50 border-gray-700">
+              <Card className="p-4 bg-card border-border">
                 <div className="flex items-center gap-2 mb-3">
                   <Key className="h-4 w-4 text-sky-400" />
-                  <Label className="text-sm font-medium text-gray-100">fal.ai API Key</Label>
-                  <span className="text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded-full">Optional</span>
+                  <Label className="text-sm font-medium text-primary">fal.ai API Key</Label>
+                  <span className="text-xs text-accent bg-card px-2 py-0.5 rounded-full border border-border">Optional</span>
                 </div>
 
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-secondary mb-3">
                   Required for Multi-Angle and Upscale features (Qwen, Topaz)
                 </p>
 
@@ -203,8 +203,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </>
                   ) : (
                     <>
-                      <AlertCircle className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-500">No API key set</span>
+                      <AlertCircle className="h-4 w-4 text-accent" />
+                      <span className="text-sm text-accent">No API key set</span>
                     </>
                   )}
                 </div>
@@ -216,10 +216,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     placeholder={config?.hasFalApiKey ? 'Enter new key to update...' : 'Enter your fal.ai API key...'}
                     value={falApiKey}
                     onChange={(e) => setFalApiKey(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-gray-600 bg-gray-800 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full h-9 px-3 rounded-lg border border-border bg-card text-sm text-primary placeholder:text-accent focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     variant="outline"
                     onClick={handleSaveFalApiKey}
                     disabled={savingFal || !falApiKey.trim()}
@@ -256,9 +256,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
               {/* Data Path Info */}
               {config && (
-                <Card className="p-4 bg-gray-800/30 border-gray-700">
-                  <Label className="text-xs text-gray-500">Data Location</Label>
-                  <p className="text-sm font-mono text-gray-400 break-all">{config.dataPath}</p>
+                <Card className="p-4 bg-card/50 border-border">
+                  <Label className="text-xs text-accent">Data Location</Label>
+                  <p className="text-sm font-mono text-secondary break-all">{config.dataPath}</p>
                 </Card>
               )}
 
@@ -274,7 +274,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 p-4 border-t border-gray-800">
+        <div className="flex justify-end gap-2 p-4 border-t border-border">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

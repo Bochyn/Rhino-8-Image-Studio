@@ -64,8 +64,8 @@ export function ThemeSwitch() {
     <button
       onClick={cycleTheme}
       className="flex items-center gap-1.5 px-2 py-1 rounded-md
-                 text-muted-foreground hover:text-foreground 
-                 hover:bg-[hsl(var(--card-bg))] transition-colors text-sm"
+                 text-secondary hover:text-primary
+                 hover:bg-card transition-colors text-sm"
       title={`Theme: ${label}`}
     >
       <Icon className="w-4 h-4" />

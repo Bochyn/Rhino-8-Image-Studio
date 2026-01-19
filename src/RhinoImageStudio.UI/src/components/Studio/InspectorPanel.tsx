@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Capture, Generation, Job } from '@/lib/types';
 import { Button } from '@/components/Common/Button';
-import { 
-  Sparkles, 
-  RefreshCw, 
-  Move3D, 
-  ArrowUpCircle, 
-  Loader2, 
-  ChevronDown, 
-  Wand2, 
+import {
+  Sparkles,
+  RefreshCw,
+  Move3D,
+  ArrowUpCircle,
+  Loader2,
+  ChevronDown,
+  Wand2,
   Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ export function InspectorPanel({
   const [mode, setMode] = useState<ModeType>('generate');
   const [prompt, setPrompt] = useState('');
   const [selectedModelId, setSelectedModelId] = useState<string>('');
-  
+
   // Unified settings state
   const [settings, setSettings] = useState<AllModelSettings>(DEFAULT_ALL_SETTINGS);
 
@@ -62,7 +62,7 @@ export function InspectorPanel({
 
     // Construct the payload based on mode and current settings
     // The StudioPage expects: { model, aspectRatio, numImages, outputFormat, ... }
-    
+
     let payload: any = {
       model: selectedModelId
     };
@@ -84,14 +84,14 @@ export function InspectorPanel({
 
     return (
       <div className="relative mb-4 group">
-        <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1.5 block">
+        <label className="text-[10px] font-bold text-accent uppercase tracking-wider mb-1.5 block">
           AI Model
         </label>
         <div className="relative">
           <select
             value={selectedModelId}
             onChange={(e) => setSelectedModelId(e.target.value)}
-            className="w-full appearance-none bg-[hsl(var(--card-bg))] border border-[hsl(var(--border-subtle))] text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[hsl(var(--accent-cta))]"
+            className="w-full appearance-none bg-card border border-border text-primary text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {models.map(id => (
               <option key={id} value={id}>
@@ -99,10 +99,10 @@ export function InspectorPanel({
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-white/50 pointer-events-none" />
+          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-secondary pointer-events-none" />
         </div>
         {currentModelInfo && (
-          <p className="mt-1.5 text-[10px] text-white/50 leading-relaxed">
+          <p className="mt-1.5 text-[10px] text-secondary leading-relaxed">
             {currentModelInfo.description}
           </p>
         )}
@@ -111,7 +111,7 @@ export function InspectorPanel({
   };
 
   const renderModes = () => (
-    <div className="grid grid-cols-4 gap-1 p-1 bg-black/20 rounded-lg mb-6 border border-white/5">
+    <div className="grid grid-cols-4 gap-1 p-1 bg-card/50 rounded-lg mb-6 border border-border/50">
       {[
         { id: 'generate', icon: Sparkles, label: 'Gen' },
         { id: 'refine', icon: RefreshCw, label: 'Edit' },
@@ -124,8 +124,8 @@ export function InspectorPanel({
           className={cn(
             "flex flex-col items-center justify-center gap-1 py-2 rounded-md transition-all duration-200",
             mode === m.id
-              ? "bg-[hsl(var(--card-bg))] text-white shadow-lg ring-1 ring-white/10"
-              : "text-white/40 hover:text-white hover:bg-white/5"
+              ? "bg-card text-primary shadow-lg ring-1 ring-border"
+              : "text-accent hover:text-primary hover:bg-primary/5"
           )}
         >
           <m.icon className="h-4 w-4" />
@@ -136,58 +136,58 @@ export function InspectorPanel({
   );
 
   return (
-    <div className="h-full flex flex-col bg-[hsl(var(--panel-bg))] rounded-2xl border border-[hsl(var(--border-subtle))] overflow-hidden">
+    <div className="h-full flex flex-col bg-panel rounded-2xl border border-border overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-white/5 bg-black/10">
-        <h2 className="text-sm font-semibold tracking-wide text-white/90 uppercase flex items-center gap-2">
+      <div className="p-4 border-b border-border/50 bg-background/50">
+        <h2 className="text-sm font-semibold tracking-wide text-primary uppercase flex items-center gap-2">
           <Settings2 className="h-4 w-4 opacity-50" />
-          Inspector
+          Editor
         </h2>
       </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-6">
-        
+
         {renderModes()}
-        
+
         {/* Source Card */}
         {hasSource ? (
-          <div className="p-3 bg-[hsl(var(--card-bg))] rounded-xl border border-[hsl(var(--border-subtle))] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-black/30 overflow-hidden flex-shrink-0">
-               <img 
-                 src={selectedGeneration?.thumbnailUrl || selectedCapture?.thumbnailUrl || selectedGeneration?.imageUrl || selectedCapture?.imageUrl} 
+          <div className="p-3 bg-card rounded-xl border border-border flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-background/50 overflow-hidden flex-shrink-0">
+               <img
+                 src={selectedGeneration?.thumbnailUrl || selectedCapture?.thumbnailUrl || selectedGeneration?.imageUrl || selectedCapture?.imageUrl}
                  className="w-full h-full object-cover"
                  alt="Source"
                />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-white/40 uppercase">Source Input</p>
-              <p className="text-xs text-white truncate font-medium">
+              <p className="text-[10px] font-bold text-accent uppercase">Source Input</p>
+              <p className="text-xs text-primary truncate font-medium">
                 {selectedGeneration ? 'Generated Image' : 'Rhino Viewport Capture'}
               </p>
             </div>
           </div>
         ) : (
-          <div className="p-4 rounded-xl border border-dashed border-white/10 text-center">
-            <p className="text-xs text-white/40">Select a capture to begin</p>
+          <div className="p-4 rounded-xl border border-dashed border-border text-center">
+            <p className="text-xs text-accent">Select a capture to begin</p>
           </div>
         )}
 
         {renderModelSelector()}
 
-        <hr className="border-white/5" />
+        <hr className="border-border/50" />
 
         {/* Dynamic Fields */}
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
+
           {/* Prompt Input (Generate/Refine only) */}
           {(mode === 'generate' || mode === 'refine') && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
                   Prompt
                 </label>
-                <button className="text-[10px] text-[hsl(var(--accent-cta))] hover:underline flex items-center gap-1">
+                <button className="text-[10px] text-primary hover:underline flex items-center gap-1">
                   <Wand2 className="h-3 w-3" /> Enhance
                 </button>
               </div>
@@ -195,7 +195,7 @@ export function InspectorPanel({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={mode === 'generate' ? "Describe the image..." : "Describe changes..."}
-                className="w-full h-24 bg-[hsl(var(--card-bg))] border border-[hsl(var(--border-subtle))] rounded-xl p-3 text-sm text-white placeholder:text-white/20 resize-none focus:outline-none focus:ring-2 focus:ring-[hsl(var(--accent-cta))]"
+                className="w-full h-24 bg-card border border-border rounded-xl p-3 text-sm text-primary placeholder:text-accent/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           )}
@@ -204,7 +204,7 @@ export function InspectorPanel({
           {(mode === 'generate' || mode === 'refine') && (
             <>
                <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Aspect Ratio</label>
+                <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Aspect Ratio</label>
                 <div className="grid grid-cols-3 gap-2">
                   {['1:1', '16:9', '4:3', '3:4', '9:16'].map(ratio => (
                     <button
@@ -213,8 +213,8 @@ export function InspectorPanel({
                       className={cn(
                         "py-2 px-1 text-xs rounded-lg border transition-all",
                         settings.generation.aspectRatio === ratio
-                          ? "bg-[hsl(var(--accent-cta))]/20 border-[hsl(var(--accent-cta))] text-[hsl(var(--accent-cta))]"
-                          : "bg-transparent border-white/10 text-white/60 hover:border-white/30"
+                          ? "bg-primary/20 border-primary text-primary"
+                          : "bg-transparent border-border text-secondary hover:border-secondary"
                       )}
                     >
                       {ratio}
@@ -222,21 +222,21 @@ export function InspectorPanel({
                   ))}
                 </div>
               </div>
-              
+
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                 <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
                    Image Count ({settings.generation.numImages})
                  </label>
-                 <input 
-                   type="range" 
-                   min="1" 
-                   max="4" 
+                 <input
+                   type="range"
+                   min="1"
+                   max="4"
                    step="1"
                    value={settings.generation.numImages}
                    onChange={(e) => setSettings(s => ({ ...s, generation: { ...s.generation, numImages: parseInt(e.target.value) } }))}
-                   className="w-full accent-[hsl(var(--accent-cta))] bg-white/10 h-1 rounded-full appearance-none cursor-pointer"
+                   className="w-full accent-primary bg-primary/10 h-1 rounded-full appearance-none cursor-pointer"
                  />
-                 <div className="flex justify-between text-[10px] text-white/30 px-1">
+                 <div className="flex justify-between text-[10px] text-accent px-1">
                    <span>1</span><span>4</span>
                  </div>
               </div>
@@ -247,38 +247,38 @@ export function InspectorPanel({
           {mode === 'multiangle' && (
             <div className="space-y-4">
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Presets</label>
+                  <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Presets</label>
                   <div className="grid grid-cols-2 gap-2">
                     {MULTI_ANGLE_PRESETS.slice(0, 4).map(preset => (
                       <button
                         key={preset.label}
-                        onClick={() => setSettings(s => ({ 
-                          ...s, 
-                          multiAngle: { 
-                            ...s.multiAngle, 
-                            horizontalAngle: preset.horizontalAngle, 
-                            verticalAngle: preset.verticalAngle 
-                          } 
+                        onClick={() => setSettings(s => ({
+                          ...s,
+                          multiAngle: {
+                            ...s.multiAngle,
+                            horizontalAngle: preset.horizontalAngle,
+                            verticalAngle: preset.verticalAngle
+                          }
                         }))}
-                        className="py-2 px-2 text-xs rounded-lg border border-white/10 text-white/60 hover:bg-white/5 hover:border-white/30 text-left"
+                        className="py-2 px-2 text-xs rounded-lg border border-border text-secondary hover:bg-primary/5 hover:border-secondary text-left"
                       >
                         {preset.label}
                       </button>
                     ))}
                   </div>
                </div>
-               
+
                <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                 <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
                    Horizontal Angle ({settings.multiAngle.horizontalAngle}°)
                  </label>
-                 <input 
-                   type="range" 
-                   min="0" 
-                   max="360" 
+                 <input
+                   type="range"
+                   min="0"
+                   max="360"
                    value={settings.multiAngle.horizontalAngle}
                    onChange={(e) => setSettings(s => ({ ...s, multiAngle: { ...s.multiAngle, horizontalAngle: parseInt(e.target.value) } }))}
-                   className="w-full accent-[hsl(var(--accent-cta))] bg-white/10 h-1 rounded-full appearance-none"
+                   className="w-full accent-primary bg-primary/10 h-1 rounded-full appearance-none"
                  />
                </div>
             </div>
@@ -288,7 +288,7 @@ export function InspectorPanel({
           {mode === 'upscale' && (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Upscale Model</label>
+                <label className="text-[10px] font-bold text-accent uppercase tracking-wider">Upscale Model</label>
                 <div className="space-y-1">
                   {TOPAZ_MODELS_LIST.map(m => (
                     <button
@@ -297,8 +297,8 @@ export function InspectorPanel({
                       className={cn(
                         "w-full text-left py-2 px-3 text-xs rounded-lg transition-all",
                          settings.upscale.model === m.value
-                          ? "bg-[hsl(var(--accent-cta))]/20 text-[hsl(var(--accent-cta))]"
-                          : "hover:bg-white/5 text-white/70"
+                          ? "bg-primary/20 text-primary"
+                          : "hover:bg-primary/5 text-text"
                       )}
                     >
                       {m.label}
@@ -306,9 +306,9 @@ export function InspectorPanel({
                   ))}
                 </div>
               </div>
-              
+
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                 <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
                    Factor ({settings.upscale.upscaleFactor}x)
                  </label>
                  <div className="flex gap-2">
@@ -319,8 +319,8 @@ export function InspectorPanel({
                         className={cn(
                           "flex-1 py-2 text-xs rounded-lg border transition-all",
                           settings.upscale.upscaleFactor === fac
-                            ? "bg-[hsl(var(--accent-cta))]/20 border-[hsl(var(--accent-cta))] text-[hsl(var(--accent-cta))]"
-                            : "bg-transparent border-white/10 text-white/60"
+                            ? "bg-primary/20 border-primary text-primary"
+                            : "bg-transparent border-border text-secondary"
                         )}
                       >
                         {fac}x
@@ -335,39 +335,39 @@ export function InspectorPanel({
       </div>
 
       {/* Footer / CTA */}
-      <div className="p-4 bg-[hsl(var(--card-bg))] border-t border-[hsl(var(--border-subtle))]">
-        
+      <div className="p-4 bg-card border-t border-border">
+
         {/* Active Jobs Mini-View */}
         {activeJobs.length > 0 && (
           <div className="mb-3 space-y-2">
             {activeJobs.map((job) => (
-              <div key={job.id} className="p-3 bg-black/20 rounded-lg border border-white/5 space-y-2">
+              <div key={job.id} className="p-3 bg-card/50 rounded-lg border border-border/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-3 w-3 animate-spin text-[hsl(var(--accent-cta))]" />
-                    <span className="text-[10px] font-medium text-white/80 uppercase tracking-wide">
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    <span className="text-[10px] font-medium text-text uppercase tracking-wide">
                       {job.type === 'Generate' || job.type === 'generation' ? 'Generation' :
                        job.type === 'Upscale' || job.type === 'upscale' ? 'Upscale' :
                        job.type === 'Refine' || job.type === 'refine' ? 'Refine' :
                        job.type === 'MultiAngle' ? 'Multi-Angle' : 'Processing'}
                     </span>
                   </div>
-                  <span className="text-[10px] text-[hsl(var(--accent-cta))] font-medium tabular-nums">
+                  <span className="text-[10px] text-primary font-medium tabular-nums">
                     {job.progress ?? 0}%
                   </span>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="relative h-1.5 bg-primary/10 rounded-full overflow-hidden">
                   <div
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[hsl(var(--accent-cta))] to-[hsl(var(--accent-cta))]/70 rounded-full transition-all duration-500 ease-out"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/70 rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${job.progress ?? 0}%` }}
                   />
                 </div>
 
                 {/* Progress Message */}
                 {job.progressMessage && (
-                  <p className="text-[10px] text-white/50 truncate">
+                  <p className="text-[10px] text-secondary truncate">
                     {job.progressMessage}
                   </p>
                 )}
@@ -377,7 +377,7 @@ export function InspectorPanel({
         )}
 
         <Button
-          className="w-full bg-[hsl(var(--accent-cta))] hover:bg-[hsl(var(--accent-cta))/90] text-white font-medium h-11 rounded-xl shadow-[0_0_15px_hsl(var(--accent-cta))/20]"
+          className="w-full bg-primary hover:bg-primary/90 text-background font-medium h-11 rounded-xl shadow-lg"
           onClick={handleSubmit}
           disabled={isProcessing || !hasSource}
         >

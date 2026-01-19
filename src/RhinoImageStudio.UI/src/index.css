@@ -1,106 +1,59 @@
+/* Sawarabi Gothic Font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Sawarabi+Gothic&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    /* ============================================
-       LIGHT MODE (default for system preference)
-       ============================================ */
-    --background: 0 0% 98%;
-    --foreground: 224 71% 4%;
+:root {
+  /* Core palette - Light Mode */
+  --text: #4b5563;
+  --background: #f3f4f6;
+  --primary: #1f2937;
+  --secondary: #48566a;
+  --accent: #9ca4b0;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+  /* UI hierarchy - Light Mode */
+  --panel-bg: #ffffff;
+  --card-bg: #f9fafb;
+  --card-hover: #f3f4f6;
+  --border: #e5e7eb;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+  /* Utilities */
+  --radius: 0.5rem;
+  --font-heading: 'Sawarabi Gothic', sans-serif;
+  --font-body: 'Sawarabi Gothic', sans-serif;
+}
 
-    --primary: 220 90% 56%;
-    --primary-foreground: 0 0% 100%;
+.dark {
+  /* Core palette - Dark Mode */
+  --text: #9ca6b4;
+  --background: #090a0c;
+  --primary: #c8d2e0;
+  --secondary: #95a3b7;
+  --accent: #4f5763;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
-
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-
-    --accent: 220 14% 96%;
-    --accent-foreground: 224 71% 4%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 90% 56%;
-    --radius: 0.5rem;
-
-    /* Custom App Tokens - Light Mode */
-    --app-bg: 220 14% 96%;          /* cool gray-100 */
-    --stage-bg: 220 13% 91%;        /* cool gray-200 */
-    --panel-bg: 0 0% 100%;          /* white */
-    --card-bg: 220 14% 96%;         /* cool gray-100 */
-    --card-hover: 220 13% 91%;      /* cool gray-200 */
-    --border-subtle: 220 13% 87%;   /* cool gray-300 */
-    --accent-cta: 160 84% 39%;      /* emerald-500 */
-    --accent-cta-hover: 160 84% 34%; /* emerald-600 */
-  }
-
-  .dark {
-    /* ============================================
-       DARK MODE - Revised Hierarchy
-       Background → Stage → Panels → Cards (light to dark inversion)
-       ============================================ */
-    --background: 224 71% 4%;       /* gray-950 */
-    --foreground: 213 31% 91%;      /* gray-100 */
-
-    --card: 220 17% 17%;            /* gray-800 */
-    --card-foreground: 213 31% 91%;
-
-    --popover: 220 17% 17%;
-    --popover-foreground: 213 31% 91%;
-
-    --primary: 210 100% 52%;        /* blue-500 */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 215 28% 17%;       /* gray-800 */
-    --secondary-foreground: 213 31% 91%;
-
-    --muted: 215 28% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 215 28% 17%;
-    --accent-foreground: 213 31% 91%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 216 34% 17%;
-
-    /* ============================================
-       Custom App Tokens - Dark Mode (NEW HIERARCHY)
-       Darkest → Lighter as you go "up" in z-order
-       ============================================ */
-    --app-bg: 224 71% 4%;           /* gray-950 - darkest, app shell */
-    --stage-bg: 222 47% 11%;        /* gray-900 - canvas/stage area */
-    --panel-bg: 220 17% 17%;        /* gray-800 - side panels (LIGHTER) */
-    --card-bg: 218 17% 24%;         /* gray-700 - cards, tiles (LIGHTER) */
-    --card-hover: 217 19% 30%;      /* gray-600/60 - hover state */
-    --border-subtle: 217 16% 18%;   /* white/8 equivalent */
-    --accent-cta: 160 84% 39%;      /* emerald-500 for primary CTA */
-    --accent-cta-hover: 160 84% 34%; /* emerald-600 for hover */
-  }
+  /* UI hierarchy - Dark Mode (derived from background) */
+  --panel-bg: #0f1115;
+  --card-bg: #161a1f;
+  --card-hover: #1e2329;
+  --border: #252a31;
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
   body {
-    @apply bg-[hsl(var(--app-bg))] text-foreground antialiased;
+    background-color: var(--background);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 400;
+    @apply antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
   }
 }
 
@@ -113,36 +66,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-[hsl(var(--border-subtle))] rounded-full;
+  background-color: var(--accent);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-[hsl(var(--card-hover))];
-}
-
-/* Utility classes for the new tokens */
-@layer utilities {
-  .bg-app {
-    background-color: hsl(var(--app-bg));
-  }
-  .bg-stage {
-    background-color: hsl(var(--stage-bg));
-  }
-  .bg-panel {
-    background-color: hsl(var(--panel-bg));
-  }
-  .bg-card-surface {
-    background-color: hsl(var(--card-bg));
-  }
-  .bg-card-surface-hover {
-    background-color: hsl(var(--card-hover));
-  }
-  .border-subtle {
-    border-color: hsl(var(--border-subtle));
-  }
-  .bg-cta {
-    background-color: hsl(var(--accent-cta));
-  }
-  .bg-cta-hover {
-    background-color: hsl(var(--accent-cta-hover));
-  }
+  background-color: var(--secondary);
 }
