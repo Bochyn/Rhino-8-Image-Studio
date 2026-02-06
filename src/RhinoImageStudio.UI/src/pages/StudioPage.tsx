@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Project, Capture, Generation, ReferenceImage } from '@/lib/types';
-import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS, MODELS } from '@/lib/models';
+import { Project, Capture, Generation, ReferenceImage, MaskState, MaskLayer, MASK_COLORS, MaskLayerPayload } from '@/lib/types';
+import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS, MODELS, getAvailableMaskSlots } from '@/lib/models';
+import { exportMaskAsPng } from '@/lib/maskUtils';
 import { useJobs } from '@/hooks/useJobs';
 import { useRhino } from '@/hooks/useRhino';
 import { AssetsPanel } from '@/components/Studio/AssetsPanel';
@@ -39,9 +40,20 @@ export function StudioPage() {
   const [references, setReferences] = useState<ReferenceImage[]>([]);
   const [showReferences, setShowReferences] = useState(false);
 
+  // Mask state
+  const [maskState, setMaskState] = useState<MaskState>({
+    layers: [],
+    activeLayerId: null,
+    brush: { size: 20, mode: 'brush' },
+  });
+  const [isMaskMode, setIsMaskMode] = useState(false);
+  const [sourceImageDimensions, setSourceImageDimensions] = useState<{ w: number; h: number } | null>(null);
+
   const currentModelInfo = MODELS[currentModelId];
   const supportsRefs = currentModelInfo?.capabilities.supportsReferences ?? false;
   const maxRefs = currentModelInfo?.maxReferences ?? 0;
+  const supportsMasks = currentModelInfo?.capabilities.supportsMasks ?? false;
+  const maxMaskLayers = currentModelInfo?.maxMaskLayers ?? 0;
 
   // Load project data
   const loadData = useCallback(async () => {
@@ -106,6 +118,106 @@ export function StudioPage() {
     setEditorSettings(settings);
     setCurrentModelId(modelId);
   }, []);
+
+  // ---- Mask handlers ----
+
+  const handleAddMaskLayer = useCallback(() => {
+    setMaskState(prev => {
+      if (prev.layers.length >= maxMaskLayers) return prev;
+      const colorIndex = prev.layers.length % MASK_COLORS.length;
+      const newLayer: MaskLayer = {
+        id: crypto.randomUUID(),
+        name: `Mask ${prev.layers.length + 1}`,
+        color: MASK_COLORS[colorIndex],
+        instruction: '',
+        visible: true,
+        imageData: null,
+      };
+      return {
+        ...prev,
+        layers: [...prev.layers, newLayer],
+        activeLayerId: newLayer.id,
+      };
+    });
+  }, [maxMaskLayers]);
+
+  const handleRemoveMaskLayer = useCallback((layerId: string) => {
+    setMaskState(prev => {
+      const filtered = prev.layers.filter(l => l.id !== layerId);
+      return {
+        ...prev,
+        layers: filtered,
+        activeLayerId: prev.activeLayerId === layerId ? (filtered[0]?.id ?? null) : prev.activeLayerId,
+      };
+    });
+  }, []);
+
+  const handleSelectMaskLayer = useCallback((layerId: string) => {
+    setMaskState(prev => ({ ...prev, activeLayerId: layerId }));
+  }, []);
+
+  const handleUpdateMaskInstruction = useCallback((layerId: string, instruction: string) => {
+    setMaskState(prev => ({
+      ...prev,
+      layers: prev.layers.map(l => l.id === layerId ? { ...l, instruction } : l),
+    }));
+  }, []);
+
+  const handleToggleMaskVisibility = useCallback((layerId: string) => {
+    setMaskState(prev => ({
+      ...prev,
+      layers: prev.layers.map(l => l.id === layerId ? { ...l, visible: !l.visible } : l),
+    }));
+  }, []);
+
+  const handleMaskLayerUpdate = useCallback((layerId: string, imageData: ImageData) => {
+    setMaskState(prev => ({
+      ...prev,
+      layers: prev.layers.map(l => l.id === layerId ? { ...l, imageData } : l),
+    }));
+  }, []);
+
+  const handleToggleMaskMode = useCallback(() => {
+    setIsMaskMode(prev => !prev);
+  }, []);
+
+  // ---- Mask effects ----
+
+  // Load source image dimensions
+  useEffect(() => {
+    const url = getDisplayImage();
+    if (!url) {
+      setSourceImageDimensions(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setSourceImageDimensions({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = url;
+  }, [selectedItem]);
+
+  // Clear masks on selectedItem change
+  useEffect(() => {
+    setMaskState(prev => ({
+      ...prev,
+      layers: [],
+      activeLayerId: null,
+    }));
+    setIsMaskMode(false);
+  }, [selectedItem?.id]);
+
+  // Trim masks when model/refs change and exceed limit
+  useEffect(() => {
+    const available = getAvailableMaskSlots(currentModelId, references.length);
+    setMaskState(prev => {
+      if (prev.layers.length <= available) return prev;
+      const trimmed = prev.layers.slice(0, available);
+      return {
+        ...prev,
+        layers: trimmed,
+        activeLayerId: trimmed.some(l => l.id === prev.activeLayerId) ? prev.activeLayerId : (trimmed[0]?.id ?? null),
+      };
+    });
+  }, [currentModelId, references.length]);
 
   // Capture viewport with AR/Resolution from editor settings
   const handleCapture = async () => {
@@ -183,7 +295,20 @@ export function StudioPage() {
           outputFormat: settings?.outputFormat,
         });
       } else {
-        // Generate or Refine
+        // Generate or Refine — export mask layers if present
+        let maskLayers: MaskLayerPayload[] | undefined;
+        if (maskState.layers.length > 0) {
+          const validMasks = maskState.layers.filter(l => l.imageData && l.instruction.trim());
+          if (validMasks.length > 0) {
+            maskLayers = await Promise.all(
+              validMasks.map(async (layer) => ({
+                maskImageBase64: await exportMaskAsPng(layer.imageData!),
+                instruction: layer.instruction.trim(),
+              }))
+            );
+          }
+        }
+
         await api.generations.create({
           projectId,
           prompt,
@@ -195,6 +320,7 @@ export function StudioPage() {
           numImages: settings?.numImages ?? 1,
           outputFormat: settings?.outputFormat ?? 'Png',
           referenceImageIds: supportsRefs ? references.map(r => r.id) : undefined,
+          maskLayers,
         });
       }
       // Job will be tracked via SSE
@@ -376,6 +502,13 @@ export function StudioPage() {
               captures={captures}
               generations={generations}
               selectedItemId={selectedItem?.id || null}
+              maskState={maskState}
+              onMaskLayerUpdate={handleMaskLayerUpdate}
+              isMaskMode={isMaskMode}
+              onToggleMaskMode={handleToggleMaskMode}
+              supportsMasks={supportsMasks}
+              sourceWidth={sourceImageDimensions?.w}
+              sourceHeight={sourceImageDimensions?.h}
             />
           </div>
           {showReferences && supportsRefs && (
@@ -397,6 +530,16 @@ export function StudioPage() {
             onGenerate={handleGenerate}
             onSettingsChange={handleSettingsChange}
             jobs={jobs}
+            maskState={maskState}
+            onAddMaskLayer={handleAddMaskLayer}
+            onRemoveMaskLayer={handleRemoveMaskLayer}
+            onSelectMaskLayer={handleSelectMaskLayer}
+            onUpdateMaskInstruction={handleUpdateMaskInstruction}
+            onToggleMaskVisibility={handleToggleMaskVisibility}
+            isMaskMode={isMaskMode}
+            onToggleMaskMode={handleToggleMaskMode}
+            maxMaskLayers={maxMaskLayers}
+            supportsMasks={supportsMasks}
           />
         </div>
 

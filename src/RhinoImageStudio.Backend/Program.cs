@@ -613,6 +613,42 @@ api.MapPost("/generate", async (GenerateRequest request, AppDbContext db, IJobQu
     if (request.ReferenceImageIds != null && request.ReferenceImageIds.Count > 4)
         return Results.BadRequest("Maximum 4 reference images allowed");
 
+    // --- Mask validation ---
+    if (request.MaskLayers != null)
+    {
+        if (request.MaskLayers.Count > 8)
+            return Results.BadRequest("Maximum 8 mask layers allowed");
+
+        for (int i = 0; i < request.MaskLayers.Count; i++)
+        {
+            var mask = request.MaskLayers[i];
+            if (string.IsNullOrWhiteSpace(mask.Instruction))
+                return Results.BadRequest($"Mask layer {i + 1} must have an instruction");
+            if (string.IsNullOrWhiteSpace(mask.MaskImageBase64))
+                return Results.BadRequest($"Mask layer {i + 1} must have image data (MaskImageBase64)");
+            try { Convert.FromBase64String(mask.MaskImageBase64); }
+            catch (FormatException) { return Results.BadRequest($"Mask layer {i + 1} contains invalid base64 image data"); }
+        }
+
+        // fal.ai models do not support masks
+        var selectedModel = request.Model ?? "gemini-2.5-flash-image";
+        if (selectedModel.StartsWith("fal-"))
+            return Results.BadRequest("Mask layers are not supported for fal.ai models");
+
+        // Validate total image count per model: 1 (source) + refs + masks <= maxTotalImages
+        var refCount = request.ReferenceImageIds?.Count ?? 0;
+        var maskCount = request.MaskLayers.Count;
+        var hasSource = request.SourceCaptureId.HasValue || request.ParentGenerationId.HasValue;
+        var totalImages = (hasSource ? 1 : 0) + refCount + maskCount;
+
+        // Flash model: max 3 total images; Pro model: max 14 total images
+        var isProModel = selectedModel.Contains("3-pro") || selectedModel.Contains("2.5-pro");
+        var maxTotalImages = isProModel ? 14 : 3;
+
+        if (totalImages > maxTotalImages)
+            return Results.BadRequest($"Total image count ({totalImages}) exceeds limit ({maxTotalImages}) for model {selectedModel}. Reduce references or masks.");
+    }
+
     var job = new Job
     {
         ProjectId = request.ProjectId,

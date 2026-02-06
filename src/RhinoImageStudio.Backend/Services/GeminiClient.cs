@@ -7,9 +7,15 @@ namespace RhinoImageStudio.Backend.Services;
 /// <summary>
 /// Client service for Google Gemini API interactions (image generation with Nano Banana / gemini-2.5-flash-image)
 /// </summary>
+
+/// <summary>
+/// Represents a mask image with its editing instruction for inpainting
+/// </summary>
+public record MaskImageData(byte[] ImageData, string Instruction);
+
 public interface IGeminiClient
 {
-    Task<GeminiImageResult> GenerateImageAsync(string prompt, byte[]? sourceImage = null, List<byte[]>? referenceImages = null, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
+    Task<GeminiImageResult> GenerateImageAsync(string prompt, byte[]? sourceImage = null, List<byte[]>? referenceImages = null, GeminiImageConfig? config = null, List<MaskImageData>? maskImages = null, CancellationToken cancellationToken = default);
     Task<GeminiImageResult> EditImageAsync(string prompt, byte[] sourceImage, List<byte[]>? referenceImages = null, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
 }
 
@@ -53,10 +59,11 @@ public class GeminiClient : IGeminiClient
         byte[]? sourceImage = null,
         List<byte[]>? referenceImages = null,
         GeminiImageConfig? config = null,
+        List<MaskImageData>? maskImages = null,
         CancellationToken cancellationToken = default)
     {
         config ??= new GeminiImageConfig();
-        
+
         _logger.LogInformation("Generating image with Gemini. Prompt: {Prompt}", prompt.Substring(0, Math.Min(50, prompt.Length)));
 
         var parts = new List<object> { new { text = prompt } };
@@ -85,6 +92,22 @@ public class GeminiClient : IGeminiClient
                     {
                         mime_type = "image/png",
                         data = Convert.ToBase64String(refImage)
+                    }
+                });
+            }
+        }
+
+        // Add mask images if provided (for inpainting)
+        if (maskImages != null)
+        {
+            foreach (var mask in maskImages)
+            {
+                parts.Add(new
+                {
+                    inline_data = new
+                    {
+                        mime_type = "image/png",
+                        data = Convert.ToBase64String(mask.ImageData)
                     }
                 });
             }
@@ -127,7 +150,7 @@ public class GeminiClient : IGeminiClient
             throw new ArgumentException("Source image is required for image editing", nameof(sourceImage));
         }
 
-        return await GenerateImageAsync(prompt, sourceImage, referenceImages, config, cancellationToken);
+        return await GenerateImageAsync(prompt, sourceImage, referenceImages, config, maskImages: null, cancellationToken);
     }
 
     private async Task<GeminiImageResult> SendRequestAsync(

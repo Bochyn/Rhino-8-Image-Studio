@@ -88,6 +88,7 @@ export interface ModelCapabilities {
   supportsNumImages: boolean;
   supportsStrength: boolean; // For image-to-image/refine
   supportsReferences: boolean;  // Whether model supports reference images
+  supportsMasks: boolean;       // Whether model supports inpainting masks
 }
 
 export interface ModelInfo {
@@ -100,7 +101,9 @@ export interface ModelInfo {
   // Model-specific options
   aspectRatios?: AspectRatioOption[];
   resolutions?: ResolutionOption[];
-  maxReferences?: number;  // Max reference images (undefined = 0)
+  maxReferences?: number;    // Max reference images (undefined = 0)
+  maxMaskLayers?: number;    // Max inpainting mask layers (undefined = 0)
+  maxTotalImages?: number;   // Max total images per request: 1 (source) + refs + masks
 }
 
 export const MODELS: Record<string, ModelInfo> = {
@@ -117,10 +120,13 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: true,
       supportsStrength: true,
       supportsReferences: true,
+      supportsMasks: true,
     },
     aspectRatios: GEMINI_ASPECT_RATIOS,
     resolutions: GEMINI_FLASH_RESOLUTIONS,
     maxReferences: 4,
+    maxMaskLayers: 2,
+    maxTotalImages: 3,
   },
   'gemini-3-pro-image-preview': {
     id: 'gemini-3-pro-image-preview',
@@ -135,10 +141,13 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: true,
       supportsStrength: true,
       supportsReferences: true,
+      supportsMasks: true,
     },
     aspectRatios: GEMINI_ASPECT_RATIOS,
     resolutions: GEMINI_PRO_RESOLUTIONS,
     maxReferences: 4,
+    maxMaskLayers: 8,
+    maxTotalImages: 14,
   },
   'fal-ai/qwen-image-edit-2511-multiple-angles': {
     id: 'fal-ai/qwen-image-edit-2511-multiple-angles',
@@ -153,6 +162,7 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: false,
       supportsStrength: false,
       supportsReferences: false,
+      supportsMasks: false,
     },
   },
   'fal-ai/topaz/upscale/image': {
@@ -168,6 +178,7 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: false,
       supportsStrength: false,
       supportsReferences: false,
+      supportsMasks: false,
     },
   },
 };
@@ -292,6 +303,17 @@ export const DEFAULT_ALL_SETTINGS: AllModelSettings = {
 
 export function getModelInfo(id: string): ModelInfo | undefined {
   return MODELS[id];
+}
+
+/**
+ * Calculate how many mask layer slots are available given current reference count.
+ * Total images = 1 (source) + refs + masks
+ */
+export function getAvailableMaskSlots(modelId: string, refCount: number): number {
+  const model = MODELS[modelId];
+  if (!model?.capabilities.supportsMasks || !model.maxTotalImages) return 0;
+  // Total images = 1 (source) + refs + masks
+  return Math.max(0, model.maxTotalImages - 1 - refCount);
 }
 
 /**

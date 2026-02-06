@@ -194,10 +194,37 @@ public class JobProcessor : BackgroundService
             }
         }
 
+        // Decode mask layers from request (base64 -> byte[])
+        List<MaskImageData>? maskImages = null;
+        string promptToSend = request.Prompt;
+
+        if (request.MaskLayers is { Count: > 0 })
+        {
+            maskImages = new List<MaskImageData>();
+            foreach (var maskLayer in request.MaskLayers)
+            {
+                var maskBytes = Convert.FromBase64String(maskLayer.MaskImageBase64);
+                maskImages.Add(new MaskImageData(maskBytes, maskLayer.Instruction));
+            }
+
+            // Build augmented prompt with numbered mask instructions
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("You are editing an image using masks. White pixels = area to edit, black = keep unchanged.");
+            for (int i = 0; i < maskImages.Count; i++)
+            {
+                sb.AppendLine($"MASK {i + 1} instruction: {maskImages[i].Instruction}");
+            }
+            sb.AppendLine($"Overall context: {request.Prompt}");
+            sb.Append("Apply ONLY to white regions. Leave black regions COMPLETELY unchanged.");
+            promptToSend = sb.ToString();
+
+            _logger.LogInformation("Inpainting with {MaskCount} mask(s)", maskImages.Count);
+        }
+
         // Determine which provider to use based on model selection and available keys
         var hasGeminiKey = await secretStorage.HasSecretAsync("gemini_api_key");
         var hasFalKey = await secretStorage.HasSecretAsync("fal_api_key");
-        
+
         // Determine the model to use
         var selectedModel = request.Model ?? GeminiModels.NanoBanana; // Default to Gemini 2.5 Flash
         var isGeminiModel = selectedModel.StartsWith("gemini-");
@@ -225,10 +252,11 @@ public class JobProcessor : BackgroundService
             try
             {
                 geminiResult = await geminiClient.GenerateImageAsync(
-                    request.Prompt,
+                    promptToSend,
                     sourceImageData,
                     referenceImages,
                     config,
+                    maskImages,
                     cancellationToken);
             }
             finally
