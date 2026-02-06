@@ -28,6 +28,20 @@ import {
 } from '@/lib/models';
 import { AngleSlider } from '@/components/Common/AngleSlider';
 
+/** Parse stored generation parameters for settings restoration */
+function parseGenerationParams(gen: Generation | null): {
+  aspectRatio?: string;
+  resolution?: string;
+  numImages?: number;
+} | null {
+  if (!gen?.parametersJson) return null;
+  try {
+    return JSON.parse(gen.parametersJson);
+  } catch {
+    return null;
+  }
+}
+
 interface InspectorPanelProps {
   selectedCapture: Capture | null;
   selectedGeneration: Generation | null;
@@ -100,6 +114,52 @@ export function InspectorPanel({
       }));
     }
   }, [selectedModelId]);
+
+  // Restore full context when selecting a generation from history
+  useEffect(() => {
+    if (selectedGeneration) {
+      // Restore prompt
+      setPrompt(selectedGeneration.prompt || '');
+
+      // Restore model (if available and valid for current mode)
+      if (selectedGeneration.modelId) {
+        const models = AVAILABLE_MODELS[mode];
+        if (models.includes(selectedGeneration.modelId)) {
+          setSelectedModelId(selectedGeneration.modelId);
+        }
+      }
+
+      // Restore generation settings (AR, resolution) from parametersJson
+      const params = parseGenerationParams(selectedGeneration);
+      if (params) {
+        setSettings(s => ({
+          ...s,
+          generation: {
+            ...s.generation,
+            ...(params.aspectRatio && { aspectRatio: params.aspectRatio }),
+            ...(params.resolution && { resolution: params.resolution }),
+            ...(params.numImages && { numImages: params.numImages }),
+          }
+        }));
+      }
+
+      // Restore multi-angle settings
+      if (selectedGeneration.azimuth !== undefined || selectedGeneration.elevation !== undefined) {
+        setSettings(s => ({
+          ...s,
+          multiAngle: {
+            ...s.multiAngle,
+            ...(selectedGeneration.azimuth !== undefined && { horizontalAngle: selectedGeneration.azimuth }),
+            ...(selectedGeneration.elevation !== undefined && { verticalAngle: selectedGeneration.elevation }),
+            ...(selectedGeneration.zoom !== undefined && { zoom: selectedGeneration.zoom }),
+          }
+        }));
+      }
+    } else if (selectedCapture) {
+      // Clicking a capture clears the prompt
+      setPrompt('');
+    }
+  }, [selectedGeneration?.id, selectedCapture?.id]);
 
   const handleSubmit = () => {
     if (!hasSource) return;

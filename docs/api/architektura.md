@@ -38,7 +38,7 @@ graph TD
 
 ### 3. Frontend UI (`src/RhinoImageStudio.UI`)
 - **Technologia**: React 18, Vite, Tailwind CSS.
-- **Czcionka**: Sawarabi Gothic (Google Fonts).
+- **Czcionka**: Inter (Google Fonts).
 - **Zadania**:
   - Interfejs użytkownika.
   - Wizualizacja postępu.
@@ -48,22 +48,23 @@ graph TD
 
 ### Paleta Kolorów
 
-Aplikacja używa custom blue-gray palety z pełnym wsparciem Light/Dark mode.
+Aplikacja używa ciepłej palety bronze-teal-navy z pełnym wsparciem Light/Dark mode.
 
 | Token | Light Mode | Dark Mode | Użycie |
 |-------|------------|-----------|--------|
-| `text` | `#4b5563` | `#9ca6b4` | Główny tekst |
-| `background` | `#f3f4f6` | `#090a0c` | Tło aplikacji |
-| `primary` | `#1f2937` | `#c8d2e0` | Nagłówki, CTA |
-| `secondary` | `#48566a` | `#95a3b7` | Tekst drugorzędny |
-| `accent` | `#9ca4b0` | `#4f5763` | Stonowane akcenty |
-| `panel-bg` | `#ffffff` | `#0f1115` | Panele boczne |
-| `card-bg` | `#f9fafb` | `#161a1f` | Karty, overlay |
-| `border` | `#e5e7eb` | `#252a31` | Obramowania |
+| `text` | `#282828` | `#d1d1d1` | Główny tekst |
+| `background` | `#ededed` | `#34312c` | Tło aplikacji |
+| `primary` | `#9e683c` | `#c28b62` | Nagłówki, CTA (Bronze) |
+| `secondary` | `#90a3a9` | `#586b71` | Tekst drugorzędny |
+| `accent` | `#1f2f3c` | `#c3d3e0` | Akcenty (Navy / Pale Blue) |
+| `panel-bg` | `#f5f5f5` | `#2b2925` | Panele boczne |
+| `card-bg` | `#f9f9f9` | `#3b3834` | Karty, overlay |
+| `border` | `#d8d8d8` | `#4a4740` | Obramowania |
+| `danger` | `#774b4a` | `#774b4a` | Destrukcyjne akcje |
 
 ### Typografia
 
-**Czcionka:** Sawarabi Gothic
+**Czcionka:** Inter
 
 | Rozmiar | Wartość |
 |---------|---------|

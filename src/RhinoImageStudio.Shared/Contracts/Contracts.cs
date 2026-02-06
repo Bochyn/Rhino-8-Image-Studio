@@ -103,6 +103,9 @@ public record GenerationDto(
     int? Height,
     double? Azimuth,
     double? Elevation,
+    double? Zoom,
+    string? ModelId,
+    string? ParametersJson,
     DateTime CreatedAt
 );
 
