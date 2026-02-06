@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Project, Capture, Generation, ReferenceImage, MaskState, MaskLayer, MASK_COLORS, MaskLayerPayload } from '@/lib/types';
 import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS, MODELS, getAvailableMaskSlots } from '@/lib/models';
-import { exportMaskAsPng } from '@/lib/maskUtils';
+import { exportMaskAsPng, importMaskFromBase64 } from '@/lib/maskUtils';
 import { useJobs } from '@/hooks/useJobs';
 import { useRhino } from '@/hooks/useRhino';
 import { AssetsPanel } from '@/components/Studio/AssetsPanel';
@@ -197,7 +197,7 @@ export function StudioPage() {
     img.src = url;
   }, [selectedItem]);
 
-  // Clear masks on selectedItem change
+  // Clear masks on selectedItem change, then load from history if available
   useEffect(() => {
     setMaskState(prev => ({
       ...prev,
@@ -205,6 +205,40 @@ export function StudioPage() {
       activeLayerId: null,
     }));
     setIsMaskMode(false);
+
+    // If a generation is selected, try to load its masks from history
+    const generation = selectedItem && 'prompt' in selectedItem ? selectedItem : null;
+    if (!generation) return;
+
+    let cancelled = false;
+    api.generations.getMasks(generation.id).then(async (maskPayloads) => {
+      if (cancelled || maskPayloads.length === 0) return;
+
+      const layers: MaskLayer[] = await Promise.all(
+        maskPayloads.map(async (payload, i) => {
+          const color = MASK_COLORS[i % MASK_COLORS.length];
+          const imageData = await importMaskFromBase64(payload.maskImageBase64, color);
+          return {
+            id: crypto.randomUUID(),
+            name: `Mask ${i + 1}`,
+            color,
+            instruction: payload.instruction,
+            visible: true,
+            imageData,
+          };
+        })
+      );
+
+      if (!cancelled) {
+        setMaskState(prev => ({
+          ...prev,
+          layers,
+          activeLayerId: layers[0]?.id ?? null,
+        }));
+      }
+    }).catch(() => { /* ignore — no masks available */ });
+
+    return () => { cancelled = true; };
   }, [selectedItem?.id]);
 
   // Trim masks when model/refs change and exceed limit

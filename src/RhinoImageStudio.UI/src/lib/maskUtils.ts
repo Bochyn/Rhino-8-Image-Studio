@@ -58,6 +58,52 @@ export async function exportMaskAsPng(imageData: ImageData): Promise<string> {
 }
 
 /**
+ * Convert a base64-encoded binary PNG mask back to colored canvas ImageData.
+ * This is the reverse of exportMaskAsPng — white pixels in the binary mask
+ * become the specified layer color with full alpha, black pixels become transparent.
+ */
+export async function importMaskFromBase64(
+  base64: string,
+  color: string
+): Promise<ImageData> {
+  const dataUrl = `data:image/png;base64,${base64}`;
+  const img = await loadImage(dataUrl);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(img, 0, 0);
+  const binaryMask = ctx.getImageData(0, 0, img.width, img.height);
+
+  const [r, g, b] = hexToRgb(color);
+  const src = binaryMask.data;
+  const result = ctx.createImageData(img.width, img.height);
+  const dst = result.data;
+
+  for (let i = 0; i < src.length; i += 4) {
+    if (src[i] > 128) {
+      dst[i] = r;
+      dst[i + 1] = g;
+      dst[i + 2] = b;
+      dst[i + 3] = 255;
+    }
+    // Black pixels remain transparent (alpha=0, default)
+  }
+
+  return result;
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [
+    parseInt(h.substring(0, 2), 16),
+    parseInt(h.substring(2, 4), 16),
+    parseInt(h.substring(4, 6), 16),
+  ];
+}
+
+/**
  * Client-side post-processing compositing:
  * Overlays the Gemini result ONLY in masked regions onto the original image.
  *

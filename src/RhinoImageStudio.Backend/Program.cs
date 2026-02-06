@@ -553,6 +553,19 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
     return Results.Json(response, jsonOptions);
 });
 
+api.MapGet("/generations/{id:guid}/masks", async (Guid id, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null || job.Type != JobType.Generate)
+        return Results.Json(Array.Empty<object>(), jsonOptions);
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
+    if (request?.MaskLayers is null || request.MaskLayers.Count == 0)
+        return Results.Json(Array.Empty<object>(), jsonOptions);
+
+    return Results.Json(request.MaskLayers, jsonOptions);
+});
+
 api.MapDelete("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 {
     var generation = await db.Generations.FindAsync(id);

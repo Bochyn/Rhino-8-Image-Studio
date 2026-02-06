@@ -1,4 +1,4 @@
-import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest, ReferenceImage, GenerationDebugInfo } from './types';
+import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest, ReferenceImage, GenerationDebugInfo, MaskLayerPayload } from './types';
 
 const API_BASE = '/api';
 
@@ -166,6 +166,11 @@ export const api = {
     getDebugInfo: async (id: string): Promise<GenerationDebugInfo> => {
       const res = await fetch(`${API_BASE}/generations/${id}/debug`);
       if (!res.ok) throw new Error('Debug info not available');
+      return res.json();
+    },
+    getMasks: async (id: string): Promise<MaskLayerPayload[]> => {
+      const res = await fetch(`${API_BASE}/generations/${id}/masks`);
+      if (!res.ok) return [];
       return res.json();
     },
   },
