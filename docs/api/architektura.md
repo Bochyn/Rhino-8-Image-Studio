@@ -148,6 +148,21 @@ Capture automatycznie używa wymiarów zgodnych z wybranymi ustawieniami w edyto
 Główne encje:
 - **Project**: Kontener na pracę użytkownika.
 - **Capture**: Przechwycony obraz z viewportu Rhino.
-- **Generation**: Pojedyncza operacja AI (Prompt + Parametry + Wynik).
+- **Generation**: Pojedyncza operacja AI (Prompt + Parametry + Wynik). Pola `IsArchived` (bool) i `ArchivedAt` (DateTime?) obsługują soft-delete.
 - **ReferenceImage**: Obraz referencyjny uploadowany przez użytkownika (max 4/projekt).
 - **Job**: Zadanie w kolejce przetwarzania (Generate, Refine, MultiAngle, Upscale).
+
+### Archiwizacja generacji
+
+Generacje obsługują soft-delete (archiwizację) — nie są trwale usuwane, a oznaczane flagą `IsArchived = true`. Endpointy list generacji automatycznie filtrują zarchiwizowane wpisy. Trwałe usunięcie (z plikami) wymaga wcześniejszej archiwizacji.
+
+Indeks kompozytowy `(ProjectId, IsArchived)` optymalizuje zapytania filtrowań.
+
+### Endpointy archiwizacji
+
+| Endpoint | Metoda | Opis |
+|----------|--------|------|
+| `DELETE /api/generations/{id}` | Soft-delete | IsArchived=true, ArchivedAt=now |
+| `PUT /api/generations/{id}/restore` | Przywróć | IsArchived=false, ArchivedAt=null |
+| `DELETE /api/generations/{id}/permanent` | Hard-delete | Wymaga archived, usuwa pliki + rekord |
+| `GET /api/projects/{id}/generations/archived` | Lista | Tylko zarchiwizowane, sortowane po ArchivedAt |

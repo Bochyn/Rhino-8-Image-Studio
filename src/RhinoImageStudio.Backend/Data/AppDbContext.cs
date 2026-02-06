@@ -80,6 +80,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.ParentGenerationId);
             entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.ProjectId, e.IsArchived });
         });
 
         // ReferenceImage

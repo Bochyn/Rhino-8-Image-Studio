@@ -5,6 +5,7 @@ interface CompareSliderProps {
   rightImage: string;
   className?: string;
   initialPosition?: number;
+  opacity?: number;  // 0-100, overlay opacity for right image (100 = fully opaque)
 }
 
 export function CompareSlider({
@@ -12,10 +13,16 @@ export function CompareSlider({
   rightImage,
   className = '',
   initialPosition = 50,
+  opacity = 100,
 }: CompareSliderProps) {
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Reset position when images change
+  useEffect(() => {
+    setPosition(initialPosition);
+  }, [leftImage, rightImage, initialPosition]);
 
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -73,20 +80,23 @@ export function CompareSlider({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      {/* Right Image (Result) - defines container size */}
+      {/* Image A (left/base) - defines container size */}
       <img
-        src={rightImage}
-        alt="Result"
+        src={leftImage}
+        alt="Image A"
         className="block max-w-full max-h-[75vh] w-auto h-auto object-contain pointer-events-none select-none"
         draggable={false}
       />
 
-      {/* Left Image (Original) - overlaid with clip-path */}
+      {/* Image B (right/overlay) - clipped by slider, with adjustable opacity */}
       <img
-        src={leftImage}
-        alt="Original"
+        src={rightImage}
+        alt="Image B"
         className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-        style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+        style={{
+          clipPath: `inset(0 0 0 ${position}%)`,
+          opacity: opacity / 100,
+        }}
         draggable={false}
       />
 

@@ -93,6 +93,10 @@ public class Generation
     public string? FalRequestId { get; set; }
     public string? ModelId { get; set; }
 
+    // Archive support (soft-delete)
+    public bool IsArchived { get; set; } = false;
+    public DateTime? ArchivedAt { get; set; }
+
     // Navigation
     public Project? Project { get; set; }
     public Capture? SourceCapture { get; set; }
