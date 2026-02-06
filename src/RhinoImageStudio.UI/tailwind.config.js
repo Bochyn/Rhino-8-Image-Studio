@@ -35,6 +35,7 @@ export default {
         card: "var(--card-bg)",
         "card-hover": "var(--card-hover)",
         border: "var(--border)",
+        danger: "var(--danger)",
       },
       borderRadius: {
         lg: "var(--radius)",

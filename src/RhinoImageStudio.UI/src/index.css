@@ -1,5 +1,5 @@
-/* Sawarabi Gothic Font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Sawarabi+Gothic&display=swap');
+/* Inter Font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,37 +7,43 @@
 
 :root {
   /* Core palette - Light Mode */
-  --text: #4b5563;
-  --background: #f3f4f6;
-  --primary: #1f2937;
-  --secondary: #48566a;
-  --accent: #9ca4b0;
+  --text: #282828;
+  --background: #ededed;
+  --primary: #9e683c;
+  --secondary: #90a3a9;
+  --accent: #1f2f3c;
 
   /* UI hierarchy - Light Mode */
-  --panel-bg: #ffffff;
-  --card-bg: #f9fafb;
-  --card-hover: #f3f4f6;
-  --border: #e5e7eb;
+  --panel-bg: #f5f5f5;
+  --card-bg: #f9f9f9;
+  --card-hover: #f0f0f0;
+  --border: #d8d8d8;
+
+  /* Extended palette */
+  --danger: #774b4a;
 
   /* Utilities */
   --radius: 0.5rem;
-  --font-heading: 'Sawarabi Gothic', sans-serif;
-  --font-body: 'Sawarabi Gothic', sans-serif;
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .dark {
   /* Core palette - Dark Mode */
-  --text: #9ca6b4;
-  --background: #090a0c;
-  --primary: #c8d2e0;
-  --secondary: #95a3b7;
-  --accent: #4f5763;
+  --text: #d1d1d1;
+  --background: #34312c;
+  --primary: #c28b62;
+  --secondary: #586b71;
+  --accent: #c3d3e0;
 
-  /* UI hierarchy - Dark Mode (derived from background) */
-  --panel-bg: #0f1115;
-  --card-bg: #161a1f;
-  --card-hover: #1e2329;
-  --border: #252a31;
+  /* UI hierarchy - Dark Mode */
+  --panel-bg: #2b2925;
+  --card-bg: #3b3834;
+  --card-hover: #44413c;
+  --border: #4a4740;
+
+  /* Extended palette */
+  --danger: #774b4a;
 }
 
 @layer base {
@@ -53,7 +59,7 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    font-weight: 700;
+    font-weight: 600;
   }
 }
 
