@@ -26,11 +26,17 @@ export interface Generation {
   parentGenerationId?: string;
   prompt: string;
   negativePrompt?: string;
+  stage?: string;
+  modelId?: string;
+  parametersJson?: string;
+  zoom?: number;
+  azimuth?: number;
+  elevation?: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   imageUrl?: string;
   thumbnailUrl?: string;
   createdAt: string;
-  settings: GenerationSettings;
+  settings?: GenerationSettings;
 }
 
 export interface GenerationSettings {

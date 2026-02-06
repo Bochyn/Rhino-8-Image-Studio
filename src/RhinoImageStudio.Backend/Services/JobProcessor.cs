@@ -149,6 +149,15 @@ public class JobProcessor : BackgroundService
         var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson)
             ?? throw new InvalidOperationException("Invalid generate request");
 
+        // Serialize generation parameters for history restoration
+        var parametersJson = JsonSerializer.Serialize(new
+        {
+            aspectRatio = request.AspectRatio,
+            resolution = request.Resolution,
+            numImages = request.NumImages,
+            outputFormat = request.OutputFormat
+        });
+
         BroadcastProgress(job, 10, "Preparing input...");
 
         // Get source image if provided (from Capture or parent Generation)
@@ -225,7 +234,8 @@ public class JobProcessor : BackgroundService
                 selectedModel,
                 dbContext,
                 storage,
-                cancellationToken);
+                cancellationToken,
+                parametersJson);
         }
         else if (isFalModel && hasFalKey)
         {
@@ -265,7 +275,8 @@ public class JobProcessor : BackgroundService
                 result,
                 dbContext,
                 storage,
-                cancellationToken);
+                cancellationToken,
+                parametersJson);
         }
         else
         {
@@ -537,7 +548,8 @@ public class JobProcessor : BackgroundService
         FalResultResponse result,
         AppDbContext dbContext,
         IStorageService storage,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? parametersJson = null)
     {
         // Get the first image (or single image for upscalers)
         var falImage = result.Images?.FirstOrDefault() ?? result.Image
@@ -567,7 +579,8 @@ public class JobProcessor : BackgroundService
                 JobType.MultiAngle => FalModels.QwenMultipleAngles,
                 JobType.Upscale => FalModels.TopazUpscale,
                 _ => null
-            }
+            },
+            ParametersJson = parametersJson
         };
 
         // Save image file
@@ -596,7 +609,8 @@ public class JobProcessor : BackgroundService
         string modelId,
         AppDbContext dbContext,
         IStorageService storage,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? parametersJson = null)
     {
         var extension = result.MimeType.Contains("png") ? "png" : "jpg";
 
@@ -612,7 +626,8 @@ public class JobProcessor : BackgroundService
             Height = null,
             Seed = null,
             FalRequestId = null,
-            ModelId = modelId
+            ModelId = modelId,
+            ParametersJson = parametersJson
         };
 
         // Save image file

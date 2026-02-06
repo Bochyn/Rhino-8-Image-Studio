@@ -308,6 +308,9 @@ api.MapGet("/projects/{projectId:guid}/generations", async (Guid projectId, AppD
             g.Height,
             g.Azimuth,
             g.Elevation,
+            g.Zoom,
+            g.ModelId,
+            g.ParametersJson,
             g.CreatedAt
         ))
         .ToListAsync();
@@ -323,7 +326,7 @@ api.MapGet("/generations", async (AppDbContext db, int? limit, int? offset) =>
         .OrderByDescending(g => g.CreatedAt);
 
     var total = await query.CountAsync();
-    
+
     var generations = await query
         .Skip(offset ?? 0)
         .Take(limit ?? 50)
@@ -340,6 +343,9 @@ api.MapGet("/generations", async (AppDbContext db, int? limit, int? offset) =>
             g.Height,
             g.Azimuth,
             g.Elevation,
+            g.Zoom,
+            g.ModelId,
+            g.ParametersJson,
             g.CreatedAt
         ))
         .ToListAsync();
@@ -365,6 +371,9 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
         generation.Height,
         generation.Azimuth,
         generation.Elevation,
+        generation.Zoom,
+        generation.ModelId,
+        generation.ParametersJson,
         generation.CreatedAt
     ));
 });
