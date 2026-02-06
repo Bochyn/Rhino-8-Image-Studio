@@ -37,11 +37,16 @@ const GEMINI_ASPECT_RATIOS: AspectRatioOption[] = [
   { value: '21:9', label: '21:9', ratio: 21/9 },
 ];
 
-// Gemini API supported resolutions (uppercase K required)
-const GEMINI_RESOLUTIONS: ResolutionOption[] = [
+// Gemini 3 Pro supported resolutions
+const GEMINI_PRO_RESOLUTIONS: ResolutionOption[] = [
   { value: '1K', label: '1K', pixels: 1024 },
   { value: '2K', label: '2K', pixels: 2048 },
   { value: '4K', label: '4K', pixels: 4096 },
+];
+
+// Gemini 2.5 Flash supports only 1K
+const GEMINI_FLASH_RESOLUTIONS: ResolutionOption[] = [
+  { value: '1K', label: '1K', pixels: 1024 },
 ];
 
 // ============================================================================
@@ -97,12 +102,28 @@ export interface ModelInfo {
 }
 
 export const MODELS: Record<string, ModelInfo> = {
+  'gemini-2.5-flash-image': {
+    id: 'gemini-2.5-flash-image',
+    provider: 'gemini',
+    name: 'Gemini 2.5 Flash',
+    shortName: 'gemini-flash',
+    description: 'Fast & cheap image generation (1K only)',
+    capabilities: {
+      supportsNegativePrompt: false,
+      supportsSeed: false,
+      supportsAspectRatio: true,
+      supportsNumImages: true,
+      supportsStrength: true,
+    },
+    aspectRatios: GEMINI_ASPECT_RATIOS,
+    resolutions: GEMINI_FLASH_RESOLUTIONS,
+  },
   'gemini-3-pro-image-preview': {
     id: 'gemini-3-pro-image-preview',
     provider: 'gemini',
     name: 'Gemini 3 Pro (Preview)',
     shortName: 'gemini-3-pro',
-    description: 'Google DeepMind advanced image generation',
+    description: 'High quality, supports 2K/4K resolution',
     capabilities: {
       supportsNegativePrompt: true,
       supportsSeed: false,
@@ -111,7 +132,7 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsStrength: true,
     },
     aspectRatios: GEMINI_ASPECT_RATIOS,
-    resolutions: GEMINI_RESOLUTIONS,
+    resolutions: GEMINI_PRO_RESOLUTIONS,
   },
   'fal-ai/qwen-image-edit-2511-multiple-angles': {
     id: 'fal-ai/qwen-image-edit-2511-multiple-angles',
@@ -147,17 +168,17 @@ export const MODELS: Record<string, ModelInfo> = {
 // MODE MAPPINGS
 // ============================================================================
 
-// Default models for each mode (Gemini 3 Pro is PRIMARY)
+// Default models for each mode (Flash is default - cheap for testing)
 export const MODE_DEFAULTS: Record<ModeType, string> = {
-  generate: 'gemini-3-pro-image-preview',
-  refine: 'gemini-3-pro-image-preview',
+  generate: 'gemini-2.5-flash-image',
+  refine: 'gemini-2.5-flash-image',
   multiangle: 'fal-ai/qwen-image-edit-2511-multiple-angles',
   upscale: 'fal-ai/topaz/upscale/image',
 };
 
 export const AVAILABLE_MODELS: Record<ModeType, string[]> = {
-  generate: ['gemini-3-pro-image-preview'],
-  refine: ['gemini-3-pro-image-preview'],
+  generate: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'],
+  refine: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'],
   multiangle: ['fal-ai/qwen-image-edit-2511-multiple-angles'],
   upscale: ['fal-ai/topaz/upscale/image'],
 };

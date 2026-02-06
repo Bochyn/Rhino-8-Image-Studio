@@ -43,16 +43,26 @@ Status: Development / Open Source Preparation
 ---
 
 ## 4. Modele i Pipeline
-Aplikacja wykorzystuje chmurę fal.ai do przetwarzania:
-- **Generation**: `fal-ai/fast-sdxl` lub `google/gemini` (zależnie od konfiguracji).
-- **Multi-angle**: `fal-ai/qwen-image-edit-2511-multiple-angles`.
-- **Upscaler**: `fal-ai/esrgan`.
 
-### Model-Aware Configuration
+### Dostępne modele generacji
 
-**WAŻNE:** Dostępne opcje Aspect Ratio i Resolution są **zależne od wybranego modelu AI**.
+| Model | ID | Provider | Rozdzielczości | Domyślny | Koszt |
+|-------|----|----------|---------------|----------|-------|
+| **Gemini 2.5 Flash** | `gemini-2.5-flash-image` | Gemini API | 1K | Tak | ~$0.04/obraz |
+| **Gemini 3 Pro** | `gemini-3-pro-image-preview` | Gemini API | 1K, 2K, 4K | Nie | wyższy |
+| **Qwen Multi-Angle** | `fal-ai/qwen-image-edit-2511-multiple-angles` | fal.ai | - | (tryb Pan) | - |
+| **Topaz Upscale** | `fal-ai/topaz/upscale/image` | fal.ai | 2x/4x | (tryb Upscale) | - |
 
-Każdy model ma własną konfigurację zdefiniowaną w `src/RhinoImageStudio.UI/src/lib/models.ts`:
+**Gemini 2.5 Flash** jest domyślnym modelem generacji (tani, szybki, do iteracji). **Gemini 3 Pro** służy do finalnych renderów w wyższych rozdzielczościach (2K/4K).
+
+### Model-Aware Configuration (Panel dostosowuje się do modelu)
+
+**WAŻNE:** Panel edytora (InspectorPanel) **dynamicznie dostosowuje** dostępne opcje Aspect Ratio i Resolution w zależności od wybranego modelu AI. Po zmianie modelu w selektorze, UI automatycznie:
+- Aktualizuje dostępne rozdzielczości (Flash: tylko 1K; Pro: 1K/2K/4K)
+- Waliduje i resetuje AR/Resolution jeśli aktualne wartości nie są wspierane przez nowy model
+- Synchronizuje wymiary Viewport Capture z wybranym AR i Resolution
+
+Każdy model ma własną konfigurację w `src/RhinoImageStudio.UI/src/lib/models.ts`:
 
 ```typescript
 interface ModelInfo {
@@ -65,23 +75,31 @@ interface ModelInfo {
 }
 ```
 
-**Gemini 3 Pro** (aktualny model główny):
+**Gemini 2.5 Flash** (`gemini-2.5-flash-image`) - domyślny:
 - **Aspect Ratios:** `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`
-- **Resolutions:** `1K` (1024px), `2K` (2048px), `4K` (4096px)
+- **Resolutions:** `1K` (1024px) - jedyna dostępna
+- **Backend:** NIE wysyłać parametru `imageSize` w Gemini API (powoduje 400 INVALID_ARGUMENT)
 
-**Viewport Capture synchronizacja:**
-- Capture automatycznie używa wymiarów zgodnych z wybranym AR i Resolution w edytorze
-- Funkcja `calculateDimensions(aspectRatio, resolution, modelId)` przelicza piksele
+**Gemini 3 Pro** (`gemini-3-pro-image-preview`):
+- **Aspect Ratios:** te same 10 co Flash
+- **Resolutions:** `1K` (1024px), `2K` (2048px), `4K` (4096px)
+- **Backend:** parametr `imageSize` jest wymagany
 
 **Dodawanie nowych modeli:**
-Aby dodać nowy model (np. Flux 2 Pro), zdefiniuj jego opcje AR/Resolution w `models.ts`:
-```typescript
-const FLUX_ASPECT_RATIOS: AspectRatioOption[] = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'square_hd', label: 'Square HD', ratio: 1 },
-  // ...
-];
-```
+1. Zdefiniuj konfigurację AR/Resolution w `models.ts` (sekcja `MODELS`)
+2. Dodaj model do `AVAILABLE_MODELS` dla odpowiednich trybów (generate/refine)
+3. W backendzie: sprawdź czy model wymaga specjalnych parametrów API (jak `imageSize`)
+4. Panel edytora automatycznie się dostosuje - nie wymaga zmian w UI
+
+### Przywracanie kontekstu z historii
+
+Po wybraniu generacji z historii, `InspectorPanel` automatycznie przywraca:
+- **Prompt** - z pola `Generation.prompt`
+- **Model** - z pola `Generation.modelId` (dodane do `GenerationDto`)
+- **AR/Resolution** - z pola `Generation.parametersJson` (serializowane przy tworzeniu)
+- **Multi-angle** (azimuth/elevation/zoom) - z dedykowanych pól
+
+Parametry generacji zapisywane są w `ParametersJson` jako JSON: `{"aspectRatio":"16:9","resolution":"1K",...}`
 
 ---
 

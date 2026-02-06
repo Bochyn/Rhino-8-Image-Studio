@@ -74,7 +74,14 @@ public class GeminiClient : IGeminiClient
         }
 
         // Gemini image generation: responseModalities tells it to return images
-        // imageConfig contains aspectRatio and imageSize per API docs
+        // imageConfig contains aspectRatio; imageSize only supported by Gemini 3 Pro+
+        var model = config.Model ?? DefaultModel;
+        var supportsImageSize = model.Contains("3-pro") || model.Contains("2.5-pro");
+
+        object imageConfig = supportsImageSize && config.ImageSize != null
+            ? new { aspectRatio = config.AspectRatio ?? "1:1", imageSize = config.ImageSize }
+            : new { aspectRatio = config.AspectRatio ?? "1:1" };
+
         var requestBody = new
         {
             contents = new[]
@@ -84,15 +91,11 @@ public class GeminiClient : IGeminiClient
             generationConfig = new
             {
                 responseModalities = new[] { "TEXT", "IMAGE" },
-                imageConfig = new
-                {
-                    aspectRatio = config.AspectRatio ?? "1:1",
-                    imageSize = config.ImageSize ?? "2K"
-                }
+                imageConfig
             }
         };
 
-        return await SendRequestAsync(requestBody, config.Model ?? DefaultModel, cancellationToken);
+        return await SendRequestAsync(requestBody, model, cancellationToken);
     }
 
     public async Task<GeminiImageResult> EditImageAsync(
