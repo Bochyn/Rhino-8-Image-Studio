@@ -515,6 +515,44 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
     ));
 });
 
+api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null) return Results.NotFound(new { error = "No job found for this generation" });
+
+    // Only Generate jobs have the full GenerateRequest with masks/references
+    if (job.Type != JobType.Generate)
+        return Results.Json(new { jobType = job.Type.ToString(), info = "Debug details only available for Generate jobs. Raw request stored but uses different schema." }, jsonOptions);
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, jsonOptions);
+    if (request is null) return Results.Problem("Failed to deserialize job request");
+
+    var sourceType = request.SourceCaptureId != null ? "capture" : request.ParentGenerationId != null ? "generation" : (string?)null;
+    var sourceId = request.SourceCaptureId ?? request.ParentGenerationId;
+
+    var response = new
+    {
+        prompt = request.Prompt,
+        model = request.Model,
+        aspectRatio = request.AspectRatio,
+        resolution = request.Resolution,
+        sourceType,
+        sourceId,
+        referenceCount = request.ReferenceImageIds?.Count ?? 0,
+        referenceImageIds = request.ReferenceImageIds,
+        masks = request.MaskLayers?.Select((m, i) => new
+        {
+            index = i + 1,
+            instruction = m.Instruction,
+            imageSize = $"[PNG, ~{m.MaskImageBase64.Length * 3 / 4 / 1024}KB]"
+        }),
+        numImages = request.NumImages,
+        outputFormat = request.OutputFormat
+    };
+
+    return Results.Json(response, jsonOptions);
+});
+
 api.MapDelete("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 {
     var generation = await db.Generations.FindAsync(id);

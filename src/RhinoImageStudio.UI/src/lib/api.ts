@@ -1,4 +1,4 @@
-import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest, ReferenceImage } from './types';
+import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest, ReferenceImage, GenerationDebugInfo } from './types';
 
 const API_BASE = '/api';
 
@@ -161,6 +161,11 @@ export const api = {
     listArchived: async (projectId: string): Promise<Generation[]> => {
       const res = await fetch(`${API_BASE}/projects/${projectId}/generations/archived`);
       if (!res.ok) throw new Error('Failed to fetch archived generations');
+      return res.json();
+    },
+    getDebugInfo: async (id: string): Promise<GenerationDebugInfo> => {
+      const res = await fetch(`${API_BASE}/generations/${id}/debug`);
+      if (!res.ok) throw new Error('Debug info not available');
       return res.json();
     },
   },

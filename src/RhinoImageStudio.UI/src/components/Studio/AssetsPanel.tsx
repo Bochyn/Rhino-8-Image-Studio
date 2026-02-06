@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Layers,
   Archive,
-  ArchiveRestore
+  ArchiveRestore,
+  Bug
 } from 'lucide-react';
 
 interface AssetsPanelProps {
@@ -24,6 +25,7 @@ interface AssetsPanelProps {
   onDelete: (id: string, type: 'capture' | 'generation') => void;
   onRestore?: (id: string) => void;
   onPermanentDelete?: (id: string) => void;
+  onDebug?: (id: string) => void;
   isCapturing: boolean;
   rhinoAvailable: boolean;
   isCollapsed: boolean;
@@ -42,6 +44,7 @@ export function AssetsPanel({
   onDelete,
   onRestore,
   onPermanentDelete,
+  onDebug,
   isCapturing,
   rhinoAvailable,
   isCollapsed,
@@ -104,6 +107,13 @@ export function AssetsPanel({
         {activeTab === 'archived' ? (
           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
             <button
+              onClick={(e) => { e.stopPropagation(); onDebug?.(item.id); }}
+              className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-primary/80 hover:text-white transition-all"
+              title="Debug info"
+            >
+              <Bug className="h-3 w-3" />
+            </button>
+            <button
               onClick={(e) => { e.stopPropagation(); onRestore?.(item.id); }}
               className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-green-500/80 hover:text-white transition-all"
               title="Restore"
@@ -119,15 +129,26 @@ export function AssetsPanel({
             </button>
           </div>
         ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(item.id, isCap ? 'capture' : 'generation');
-            }}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 text-primary opacity-0 group-hover:opacity-100 hover:bg-red-500/80 hover:text-white transition-all"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            {!isCap && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDebug?.(item.id); }}
+                className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-primary/80 hover:text-white transition-all"
+                title="Debug info"
+              >
+                <Bug className="h-3 w-3" />
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id, isCap ? 'capture' : 'generation');
+              }}
+              className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-red-500/80 hover:text-white transition-all"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
         )}
 
         {/* Metadata Label */}

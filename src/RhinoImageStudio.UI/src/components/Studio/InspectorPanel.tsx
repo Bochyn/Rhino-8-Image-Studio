@@ -382,10 +382,18 @@ export function InspectorPanel({
                       )}
                     >
                       <div className="flex items-center gap-2 mb-1.5">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: layer.color }}
-                        />
+                        <div className="relative w-3.5 h-3.5 flex-shrink-0">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: layer.color }}
+                          />
+                          <div className={cn(
+                            "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-panel",
+                            layer.imageData && layer.instruction.trim()
+                              ? "bg-green-500"
+                              : "bg-amber-400"
+                          )} />
+                        </div>
                         <span className="text-[10px] font-medium text-primary flex-1 truncate">
                           {layer.name}
                         </span>
@@ -707,6 +715,11 @@ export function InspectorPanel({
           )}
           {mode === 'generate' ? 'Generate' : mode === 'refine' ? 'Refine' : mode === 'upscale' ? 'Upscale' : 'Move Camera'}
         </Button>
+        {maskState && maskState.layers.length > 0 && (
+          <p className="text-[10px] text-secondary mt-1.5 text-center">
+            {maskState.layers.filter(l => l.imageData && l.instruction.trim()).length}/{maskState.layers.length} masks ready
+          </p>
+        )}
       </div>
     </div>
   );

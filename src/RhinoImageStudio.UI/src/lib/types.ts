@@ -167,3 +167,17 @@ export interface RhinoBridge {
   GetViewports(): Promise<ViewportInfo[]>;
   GetApiUrl(): Promise<string>;
 }
+
+export interface GenerationDebugInfo {
+  prompt: string;
+  model?: string;
+  aspectRatio?: string;
+  resolution?: string;
+  sourceType?: 'capture' | 'generation';
+  sourceId?: string;
+  referenceCount: number;
+  referenceImageIds?: string[];
+  masks?: { index: number; instruction: string; imageSize: string }[];
+  numImages?: number;
+  outputFormat?: string;
+}

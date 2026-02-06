@@ -11,6 +11,7 @@ import { CanvasStage } from '@/components/Studio/CanvasStage';
 import { InspectorPanel } from '@/components/Studio/InspectorPanel';
 import { ReferencePanel } from '@/components/Studio/ReferencePanel';
 import { SettingsModal } from '@/components/Settings/SettingsModal';
+import { DebugModal } from '@/components/Studio/DebugModal';
 import { Button } from '@/components/Common/Button';
 import { ThemeSwitch } from '@/components/Common/ThemeSwitch';
 import { Settings, Loader2, Home } from 'lucide-react';
@@ -33,6 +34,7 @@ export function StudioPage() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
+  const [debugGenerationId, setDebugGenerationId] = useState<string | null>(null);
 
   // Editor settings from InspectorPanel (for capture sync)
   const [editorSettings, setEditorSettings] = useState<AllModelSettings>(DEFAULT_ALL_SETTINGS);
@@ -382,6 +384,10 @@ export function StudioPage() {
     }
   };
 
+  const handleDebug = useCallback((id: string) => {
+    setDebugGenerationId(id);
+  }, []);
+
   const handleDownload = () => {
     if (!selectedItem) return;
     const url = 'imageUrl' in selectedItem ? selectedItem.imageUrl : '';
@@ -484,6 +490,7 @@ export function StudioPage() {
             archivedGenerations={archivedGenerations}
             onRestore={handleRestore}
             onPermanentDelete={handlePermanentDelete}
+            onDebug={handleDebug}
           />
         </div>
 
@@ -548,6 +555,12 @@ export function StudioPage() {
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
+      />
+
+      <DebugModal
+        isOpen={!!debugGenerationId}
+        onClose={() => setDebugGenerationId(null)}
+        generationId={debugGenerationId}
       />
     </div>
   );
