@@ -36,6 +36,8 @@ export interface Generation {
   imageUrl?: string;
   thumbnailUrl?: string;
   createdAt: string;
+  isArchived?: boolean;
+  archivedAt?: string;
   settings?: GenerationSettings;
 }
 

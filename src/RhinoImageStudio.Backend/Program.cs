@@ -95,6 +95,22 @@ using (var scope = app.Services.CreateScope())
         CreatedAt TEXT NOT NULL,
         FOREIGN KEY (ProjectId) REFERENCES Projects(Id) ON DELETE CASCADE
     )");
+
+    // Add archive columns if they don't exist (PRAGMA check avoids EF Core fail logs)
+    using var conn = db.Database.GetDbConnection();
+    conn.Open();
+    using var cmd = conn.CreateCommand();
+    cmd.CommandText = "PRAGMA table_info(Generations)";
+    var existingColumns = new HashSet<string>();
+    using (var reader = cmd.ExecuteReader())
+    {
+        while (reader.Read())
+            existingColumns.Add(reader.GetString(1));
+    }
+    if (!existingColumns.Contains("IsArchived"))
+        db.Database.ExecuteSqlRaw("ALTER TABLE Generations ADD COLUMN IsArchived INTEGER NOT NULL DEFAULT 0");
+    if (!existingColumns.Contains("ArchivedAt"))
+        db.Database.ExecuteSqlRaw("ALTER TABLE Generations ADD COLUMN ArchivedAt TEXT");
 }
 
 // Middleware
@@ -132,8 +148,8 @@ api.MapGet("/projects", async (AppDbContext db) =>
             s.UpdatedAt,
             s.IsPinned,
             s.Captures.Count,
-            s.Generations.Count,
-            s.Generations.OrderByDescending(g => g.CreatedAt).FirstOrDefault()!.ThumbnailPath
+            s.Generations.Count(g => !g.IsArchived),
+            s.Generations.Where(g => !g.IsArchived).OrderByDescending(g => g.CreatedAt).FirstOrDefault()!.ThumbnailPath
         ))
         .ToListAsync();
 
@@ -385,10 +401,29 @@ api.MapDelete("/references/{id:guid}", async (Guid id, AppDbContext db, IStorage
 });
 
 // --- Generations ---
+api.MapGet("/projects/{projectId:guid}/generations/archived", async (Guid projectId, AppDbContext db) =>
+{
+    var archived = await db.Generations
+        .Where(g => g.ProjectId == projectId && g.IsArchived)
+        .OrderByDescending(g => g.ArchivedAt)
+        .Select(g => new GenerationDto(
+            g.Id, g.ProjectId, g.ParentGenerationId, g.SourceCaptureId,
+            g.Stage, g.Prompt,
+            g.FilePath != null ? $"/images/{g.FilePath}" : null,
+            g.ThumbnailPath != null ? $"/images/{g.ThumbnailPath}" : null,
+            g.Width, g.Height, g.Azimuth, g.Elevation, g.Zoom,
+            g.ModelId, g.ParametersJson, g.CreatedAt,
+            g.IsArchived, g.ArchivedAt
+        ))
+        .ToListAsync();
+    return Results.Ok(archived);
+});
+
 api.MapGet("/projects/{projectId:guid}/generations", async (Guid projectId, AppDbContext db) =>
 {
     var generations = await db.Generations
         .Where(g => g.ProjectId == projectId)
+        .Where(g => !g.IsArchived)
         .OrderByDescending(g => g.CreatedAt)
         .Select(g => new GenerationDto(
             g.Id,
@@ -406,7 +441,9 @@ api.MapGet("/projects/{projectId:guid}/generations", async (Guid projectId, AppD
             g.Zoom,
             g.ModelId,
             g.ParametersJson,
-            g.CreatedAt
+            g.CreatedAt,
+            g.IsArchived,
+            g.ArchivedAt
         ))
         .ToListAsync();
 
@@ -418,6 +455,7 @@ api.MapGet("/generations", async (AppDbContext db, int? limit, int? offset) =>
 {
     var query = db.Generations
         .Include(g => g.Project)
+        .Where(g => !g.IsArchived)
         .OrderByDescending(g => g.CreatedAt);
 
     var total = await query.CountAsync();
@@ -441,7 +479,9 @@ api.MapGet("/generations", async (AppDbContext db, int? limit, int? offset) =>
             g.Zoom,
             g.ModelId,
             g.ParametersJson,
-            g.CreatedAt
+            g.CreatedAt,
+            g.IsArchived,
+            g.ArchivedAt
         ))
         .ToListAsync();
 
@@ -469,8 +509,45 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
         generation.Zoom,
         generation.ModelId,
         generation.ParametersJson,
-        generation.CreatedAt
+        generation.CreatedAt,
+        generation.IsArchived,
+        generation.ArchivedAt
     ));
+});
+
+api.MapDelete("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
+{
+    var generation = await db.Generations.FindAsync(id);
+    if (generation is null) return Results.NotFound();
+    generation.IsArchived = true;
+    generation.ArchivedAt = DateTime.UtcNow;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { archived = true, id = generation.Id });
+});
+
+api.MapPut("/generations/{id:guid}/restore", async (Guid id, AppDbContext db) =>
+{
+    var generation = await db.Generations.FindAsync(id);
+    if (generation is null) return Results.NotFound();
+    generation.IsArchived = false;
+    generation.ArchivedAt = null;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { restored = true, id = generation.Id });
+});
+
+api.MapDelete("/generations/{id:guid}/permanent", async (Guid id, AppDbContext db, IStorageService storage) =>
+{
+    var generation = await db.Generations.FindAsync(id);
+    if (generation is null) return Results.NotFound();
+    if (!generation.IsArchived)
+        return Results.BadRequest("Generation must be archived before permanent deletion");
+    if (generation.FilePath != null)
+        await storage.DeleteFileAsync(generation.FilePath);
+    if (generation.ThumbnailPath != null)
+        await storage.DeleteFileAsync(generation.ThumbnailPath);
+    db.Generations.Remove(generation);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
 });
 
 // --- Jobs ---

@@ -107,7 +107,9 @@ public record GenerationDto(
     double? Zoom,
     string? ModelId,
     string? ParametersJson,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    bool IsArchived = false,
+    DateTime? ArchivedAt = null
 );
 
 public record ReferenceImageDto(

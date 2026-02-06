@@ -9,31 +9,39 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 
 interface AssetsPanelProps {
   captures: Capture[];
   generations: Generation[];
+  archivedGenerations: Generation[];
   selectedItem: Capture | Generation | null;
   onSelect: (item: Capture | Generation) => void;
   onCapture: () => void;
   onDelete: (id: string, type: 'capture' | 'generation') => void;
+  onRestore?: (id: string) => void;
+  onPermanentDelete?: (id: string) => void;
   isCapturing: boolean;
   rhinoAvailable: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-type Tab = 'captures' | 'generations' | 'favorites';
+type Tab = 'captures' | 'generations' | 'favorites' | 'archived';
 
 export function AssetsPanel({
   captures,
   generations,
+  archivedGenerations,
   selectedItem,
   onSelect,
   onCapture,
   onDelete,
+  onRestore,
+  onPermanentDelete,
   isCapturing,
   rhinoAvailable,
   isCollapsed,
@@ -46,6 +54,7 @@ export function AssetsPanel({
       case 'captures': return captures;
       case 'generations': return generations;
       case 'favorites': return [];
+      case 'archived': return archivedGenerations;
     }
   };
 
@@ -91,16 +100,35 @@ export function AssetsPanel({
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Delete Button (Hover) */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(item.id, isCap ? 'capture' : 'generation');
-          }}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 text-primary opacity-0 group-hover:opacity-100 hover:bg-red-500/80 hover:text-white transition-all"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
+        {/* Action Buttons (Hover) */}
+        {activeTab === 'archived' ? (
+          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+            <button
+              onClick={(e) => { e.stopPropagation(); onRestore?.(item.id); }}
+              className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-green-500/80 hover:text-white transition-all"
+              title="Restore"
+            >
+              <ArchiveRestore className="h-3 w-3" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPermanentDelete?.(item.id); }}
+              className="p-1.5 rounded-full bg-background/60 text-primary hover:bg-red-500/80 hover:text-white transition-all"
+              title="Delete permanently"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item.id, isCap ? 'capture' : 'generation');
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-background/60 text-primary opacity-0 group-hover:opacity-100 hover:bg-red-500/80 hover:text-white transition-all"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
 
         {/* Metadata Label */}
         <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all">
@@ -185,6 +213,18 @@ export function AssetsPanel({
           )}
         >
           Generations
+        </button>
+        <button
+          onClick={() => setActiveTab('archived')}
+          className={cn(
+            "py-1.5 px-2 text-xs font-medium rounded-md transition-colors",
+            activeTab === 'archived'
+              ? "bg-primary/10 text-primary"
+              : "text-secondary hover:bg-primary/5"
+          )}
+          title="Archived"
+        >
+          <Archive className="h-3 w-3" />
         </button>
         <button
           onClick={() => setActiveTab('favorites')}

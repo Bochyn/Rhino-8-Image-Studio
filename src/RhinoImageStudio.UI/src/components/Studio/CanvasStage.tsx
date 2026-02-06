@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/Common/Button';
 import { CompareSlider } from '@/components/Studio/CompareSlider';
 import { SmoothProgress } from '@/components/Common/SmoothProgress';
 import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save, ImagePlus } from 'lucide-react';
-import { Job } from '@/lib/types';
+import { Job, Capture, Generation } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+interface CompareItem {
+  id: string;
+  label: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  type: 'capture' | 'generation';
+}
 
 interface CanvasStageProps {
   currentImage: string | null;
@@ -14,6 +23,9 @@ interface CanvasStageProps {
   supportsReferences?: boolean;
   hasReferences?: boolean;
   onToggleReferences?: () => void;
+  captures?: Capture[];
+  generations?: Generation[];
+  selectedItemId?: string | null;
 }
 
 export function CanvasStage({
@@ -25,15 +37,71 @@ export function CanvasStage({
   supportsReferences,
   hasReferences,
   onToggleReferences,
+  captures,
+  generations,
+  selectedItemId,
 }: CanvasStageProps) {
   const [zoom, setZoom] = useState(1);
   const [compareMode, setCompareMode] = useState(false);
+  const [imageAId, setImageAId] = useState<string | null>(null);
+  const [imageBId, setImageBId] = useState<string | null>(null);
+  const [compareOpacity, setCompareOpacity] = useState(100);
+
+  const compareItems: CompareItem[] = useMemo(() => {
+    const items: CompareItem[] = [];
+    (captures || []).forEach(c => {
+      if (c.imageUrl) {
+        items.push({
+          id: c.id,
+          label: c.viewName || `Capture ${new Date(c.createdAt).toLocaleTimeString()}`,
+          imageUrl: c.imageUrl,
+          thumbnailUrl: c.thumbnailUrl || c.imageUrl,
+          type: 'capture',
+        });
+      }
+    });
+    (generations || []).forEach(g => {
+      if (g.imageUrl) {
+        items.push({
+          id: g.id,
+          label: g.prompt?.substring(0, 40) || `Generation ${new Date(g.createdAt).toLocaleTimeString()}`,
+          imageUrl: g.imageUrl,
+          thumbnailUrl: g.thumbnailUrl || g.imageUrl,
+          type: 'generation',
+        });
+      }
+    });
+    return items;
+  }, [captures, generations]);
+
+  const imageAUrl = compareItems.find(i => i.id === imageAId)?.imageUrl || null;
+  const imageBUrl = compareItems.find(i => i.id === imageBId)?.imageUrl || null;
 
   const handleZoomIn = () => setZoom(z => Math.min(z * 1.5, 8));
   const handleZoomOut = () => setZoom(z => Math.max(z / 1.5, 0.5));
   const handleFit = () => setZoom(1);
 
-  const canCompare = !!(originalImage && currentImage && originalImage !== currentImage);
+  const canCompare = compareItems.length >= 2 || !!(originalImage && currentImage && originalImage !== currentImage);
+
+  // Default selections when entering compare mode
+  const handleEnterCompare = () => {
+    if (!compareMode) {
+      // Entering compare mode - set defaults
+      if (selectedItemId) {
+        setImageBId(selectedItemId);
+      }
+      if (originalImage) {
+        const sourceItem = compareItems.find(i => i.imageUrl === originalImage);
+        if (sourceItem) setImageAId(sourceItem.id);
+      }
+    } else {
+      // Exiting compare mode - reset
+      setImageAId(null);
+      setImageBId(null);
+      setCompareOpacity(100);
+    }
+    setCompareMode(!compareMode);
+  };
 
   return (
     <div className="relative flex-1 h-full w-full flex items-center justify-center overflow-hidden bg-panel rounded-2xl">
@@ -77,17 +145,20 @@ export function CanvasStage({
         </Button>
 
         {canCompare && (
-          <Button
-            variant={compareMode ? 'secondary' : 'ghost'}
-            size="icon"
-            onClick={() => setCompareMode(!compareMode)}
-            className={`h-8 w-8 rounded-full transition-colors ${
-              compareMode ? 'bg-primary text-background hover:bg-primary/90' : 'hover:bg-primary/10 text-primary'
-            }`}
-            title="Toggle Compare"
-          >
-            <Columns className="h-4 w-4" />
-          </Button>
+          <>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Button
+              variant={compareMode ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={handleEnterCompare}
+              className={`h-8 w-8 rounded-full transition-colors ${
+                compareMode ? 'bg-primary text-background hover:bg-primary/90' : 'hover:bg-primary/10 text-primary'
+              }`}
+              title="Toggle Compare"
+            >
+              <Columns className="h-4 w-4" />
+            </Button>
+          </>
         )}
 
         {supportsReferences && (
@@ -119,6 +190,22 @@ export function CanvasStage({
           </Button>
         )}
       </div>
+
+      {/* Compare Opacity Control */}
+      {compareMode && (
+        <div className="absolute top-16 right-6 z-50 flex items-center gap-2 p-2 bg-card/80 backdrop-blur-md rounded-xl shadow-lg border border-border">
+          <span className="text-[10px] font-medium text-secondary uppercase tracking-wide">B Opacity</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={compareOpacity}
+            onChange={(e) => setCompareOpacity(Number(e.target.value))}
+            className="w-24 h-1 accent-primary"
+          />
+          <span className="text-xs text-primary w-8 text-right">{compareOpacity}%</span>
+        </div>
+      )}
 
       {/* Main Canvas Area */}
       <div className="w-full h-full p-8 flex items-center justify-center">
@@ -182,19 +269,97 @@ export function CanvasStage({
               maxHeight: '100%',
             }}
           >
-            {compareMode && originalImage ? (
-              <div className="flex flex-col items-center gap-2">
-                {/* Labels above comparison */}
-                <div className="flex items-center justify-between w-full px-1">
-                  <span className="text-xs font-medium text-secondary uppercase tracking-wide">Original</span>
-                  <span className="text-xs font-medium text-secondary uppercase tracking-wide">Result</span>
+            {compareMode ? (
+              <div className="flex flex-col items-center gap-3 max-w-full">
+                {/* Labels */}
+                {imageAUrl && imageBUrl && (
+                  <div className="flex items-center justify-between w-full px-1">
+                    <span className="text-xs font-medium text-secondary uppercase tracking-wide">
+                      A: {compareItems.find(i => i.id === imageAId)?.label || 'Image A'}
+                    </span>
+                    <span className="text-xs font-medium text-secondary uppercase tracking-wide">
+                      B: {compareItems.find(i => i.id === imageBId)?.label || 'Image B'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Slider */}
+                {imageAUrl && imageBUrl ? (
+                  <CompareSlider
+                    leftImage={imageAUrl}
+                    rightImage={imageBUrl}
+                    opacity={compareOpacity}
+                    className="rounded-sm shadow-2xl"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-secondary opacity-50">
+                    <Columns className="h-8 w-8 mb-2 opacity-30" />
+                    <p className="text-sm">Select Image A and Image B below</p>
+                  </div>
+                )}
+
+                {/* Thumbnail Selector Rows */}
+                <div className="w-full max-w-[600px] flex flex-col gap-2 mt-1">
+                  {/* Row A */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-primary uppercase tracking-wider w-4 shrink-0">A</span>
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                      {compareItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setImageAId(item.id)}
+                          className={cn(
+                            "relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
+                            imageAId === item.id
+                              ? "border-primary ring-1 ring-primary/50"
+                              : "border-transparent hover:border-border opacity-70 hover:opacity-100"
+                          )}
+                          title={item.label}
+                        >
+                          <img
+                            src={item.thumbnailUrl || item.imageUrl}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                          <span className="absolute bottom-0 left-0 right-0 bg-background/70 text-[8px] text-center text-primary font-medium leading-tight py-px">
+                            {item.type === 'capture' ? 'C' : 'G'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Row B */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-primary uppercase tracking-wider w-4 shrink-0">B</span>
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                      {compareItems.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setImageBId(item.id)}
+                          className={cn(
+                            "relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all",
+                            imageBId === item.id
+                              ? "border-primary ring-1 ring-primary/50"
+                              : "border-transparent hover:border-border opacity-70 hover:opacity-100"
+                          )}
+                          title={item.label}
+                        >
+                          <img
+                            src={item.thumbnailUrl || item.imageUrl}
+                            alt={item.label}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                          <span className="absolute bottom-0 left-0 right-0 bg-background/70 text-[8px] text-center text-primary font-medium leading-tight py-px">
+                            {item.type === 'capture' ? 'C' : 'G'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                {/* Comparison slider */}
-                <CompareSlider
-                  leftImage={originalImage}
-                  rightImage={currentImage}
-                  className="rounded-sm shadow-2xl"
-                />
               </div>
             ) : (
               <img

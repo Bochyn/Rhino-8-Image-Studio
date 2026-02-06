@@ -23,6 +23,7 @@ export function StudioPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
+  const [archivedGenerations, setArchivedGenerations] = useState<Generation[]>([]);
 
   // Unified selection state
   const [selectedItem, setSelectedItem] = useState<Capture | Generation | null>(null);
@@ -46,16 +47,18 @@ export function StudioPage() {
   const loadData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const [projectData, capturesData, generationsData, referencesData] = await Promise.all([
+      const [projectData, capturesData, generationsData, referencesData, archivedData] = await Promise.all([
         api.projects.get(projectId),
         api.captures.list(projectId),
         api.generations.list(projectId),
         api.references.list(projectId),
+        api.generations.listArchived(projectId),
       ]);
       setProject(projectData);
       setCaptures(capturesData);
       setGenerations(generationsData);
       setReferences(referencesData);
+      setArchivedGenerations(archivedData);
 
       // Auto-select logic if nothing selected
       if (!selectedItem) {
@@ -209,8 +212,47 @@ export function StudioPage() {
          if (selectedItem?.id === id) setSelectedItem(null);
        }
     } else {
-      // Generation delete not supported by API yet
-      console.warn('Generation delete not supported');
+      try {
+        await api.generations.archive(id);
+        const archived = generations.find(g => g.id === id);
+        setGenerations(prev => prev.filter(g => g.id !== id));
+        if (archived) {
+          setArchivedGenerations(prev => [{ ...archived, isArchived: true, archivedAt: new Date().toISOString() }, ...prev]);
+        }
+        if (selectedItem?.id === id) setSelectedItem(null);
+      } catch (error) {
+        console.error('Failed to archive generation:', error);
+        loadData();
+      }
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    if (!projectId) return;
+    try {
+      await api.generations.restore(id);
+      const restored = archivedGenerations.find(g => g.id === id);
+      setArchivedGenerations(prev => prev.filter(g => g.id !== id));
+      if (restored) {
+        setGenerations(prev => [{ ...restored, isArchived: false, archivedAt: undefined }, ...prev]);
+      }
+    } catch (error) {
+      console.error('Failed to restore generation:', error);
+      loadData();
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!projectId) return;
+    if (confirm('Permanently delete this generation? This cannot be undone.')) {
+      try {
+        await api.generations.permanentDelete(id);
+        setArchivedGenerations(prev => prev.filter(g => g.id !== id));
+        if (selectedItem?.id === id) setSelectedItem(null);
+      } catch (error) {
+        console.error('Failed to permanently delete generation:', error);
+        loadData();
+      }
     }
   };
 
@@ -252,7 +294,8 @@ export function StudioPage() {
 
     // Priority 2: Parent generation (refinement chain)
     if (generation.parentGenerationId) {
-      const parentGen = generations.find(g => g.id === generation.parentGenerationId);
+      const parentGen = generations.find(g => g.id === generation.parentGenerationId)
+        || archivedGenerations.find(g => g.id === generation.parentGenerationId);
       if (parentGen?.imageUrl) return parentGen.imageUrl;
     }
 
@@ -312,6 +355,9 @@ export function StudioPage() {
             rhinoAvailable={rhinoAvailable}
             isCollapsed={assetsCollapsed}
             onToggleCollapse={() => setAssetsCollapsed(!assetsCollapsed)}
+            archivedGenerations={archivedGenerations}
+            onRestore={handleRestore}
+            onPermanentDelete={handlePermanentDelete}
           />
         </div>
 
@@ -327,6 +373,9 @@ export function StudioPage() {
               supportsReferences={supportsRefs}
               hasReferences={references.length > 0}
               onToggleReferences={() => setShowReferences(!showReferences)}
+              captures={captures}
+              generations={generations}
+              selectedItemId={selectedItem?.id || null}
             />
           </div>
           {showReferences && supportsRefs && (

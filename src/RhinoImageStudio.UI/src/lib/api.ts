@@ -139,7 +139,30 @@ export const api = {
       });
       if (!res.ok) throw new Error('Failed to start generation');
       return res.json();
-    }
+    },
+    archive: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/generations/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to archive generation');
+    },
+    restore: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/generations/${id}/restore`, {
+        method: 'PUT',
+      });
+      if (!res.ok) throw new Error('Failed to restore generation');
+    },
+    permanentDelete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/generations/${id}/permanent`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to permanently delete generation');
+    },
+    listArchived: async (projectId: string): Promise<Generation[]> => {
+      const res = await fetch(`${API_BASE}/projects/${projectId}/generations/archived`);
+      if (!res.ok) throw new Error('Failed to fetch archived generations');
+      return res.json();
+    },
   },
   multiAngle: {
     create: async (data: MultiAngleRequest): Promise<void> => {

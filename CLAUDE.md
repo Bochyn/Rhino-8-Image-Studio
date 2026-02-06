@@ -5,7 +5,7 @@ Status: Development / Open Source Preparation
 ## 1. Streszczenie (Executive Summary)
 **Rhino Image Studio** to wtyczka dla Rhinoceros (Windows), która zamienia widok z viewportu (shaded / wireframe / inne display modes) w wysokiej jakości wizualizacje generowane przez modele AI. Użytkownik pracuje w Rhino jak zwykle, a w dockowanym panelu otrzymuje nowoczesny, webowy interfejs do generowania, iteracji, tworzenia wariantów, "multi-angle" i finalnego upscalowania obrazów.
 
-## 2. Status Implementacji (2026-01-19)
+## 2. Status Implementacji (2026-02-06)
 
 ### Zrealizowane (MVP)
 - [x] **Rhino Plugin**: Panel dokowany, komunikacja z backendem.
@@ -17,8 +17,9 @@ Status: Development / Open Source Preparation
     - Upscaling: RealESRGAN/inne (przez fal.ai).
 - [x] **Dokumentacja**: Pełna struktura w folderze `/docs`.
 - [x] **UI Design System**: Custom blue-gray paleta + Sawarabi Gothic.
-- [x] **A/B Comparison**: Porównanie Before/After (viewport vs generacja) ze sliderem.
+- [x] **A/B Comparison**: Rozbudowany slider z regulowaną opacity overlay, wybór dowolnych obrazów A/B z galerii thumbnails.
 - [x] **Reference Images**: Upload do 4 referencji (materiały, obiekty, styl) wysyłanych z promptem do Gemini.
+- [x] **Generation Archive**: Soft-delete generacji z zakładką "Archived" — przywracanie i permanentne usuwanie.
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).
@@ -101,6 +102,33 @@ Po wybraniu generacji z historii, `InspectorPanel` automatycznie przywraca:
 - **Multi-angle** (azimuth/elevation/zoom) - z dedykowanych pól
 
 Parametry generacji zapisywane są w `ParametersJson` jako JSON: `{"aspectRatio":"16:9","resolution":"1K",...}`
+
+### Archiwizacja generacji (Soft-Delete)
+
+Generacje mogą być archiwizowane (soft-delete) zamiast trwale usuwane. Model `Generation` posiada:
+- `IsArchived` (bool, default false) — flaga archiwizacji
+- `ArchivedAt` (DateTime?) — timestamp archiwizacji
+
+**Endpointy:**
+| Endpoint | Metoda | Działanie |
+|----------|--------|-----------|
+| `DELETE /api/generations/{id}` | Archiwizuj | Ustawia IsArchived=true |
+| `PUT /api/generations/{id}/restore` | Przywróć | Ustawia IsArchived=false |
+| `DELETE /api/generations/{id}/permanent` | Usuń trwale | Usuwa pliki + rekord (wymaga archived) |
+| `GET /api/projects/{id}/generations/archived` | Lista archived | Filtruje IsArchived=true |
+
+Istniejące endpointy listy generacji automatycznie filtrują `!IsArchived`.
+
+**UI:** Zakładka "Archived" (ikona Archive) w AssetsPanel z przyciskami Restore i Permanent Delete.
+
+### Porównanie A/B (Compare Slider)
+
+Rozbudowany slider porównania z regulowaną przezroczystością:
+- **Image A** (lewa/baza) i **Image B** (prawa/overlay z opacity) wybierane z galerii thumbnails
+- **Opacity slider** (0-100%) reguluje przezroczystość overlay Image B
+- **Thumbnail gallery** pod sliderem: dwa rzędy (A/B) miniaturek 48x48px z oznaczeniami C/G
+- Domyślne selekcje: B = aktualnie wybrany element, A = źródło (capture/parent generation)
+- Aktywacja: przycisk Columns w floating toolbar
 
 ---
 

@@ -45,6 +45,41 @@ Wszystkie wersje są zapisywane w Historii. Możesz do nich wrócić w każdej c
 
 ---
 
+## Zarządzanie generacjami
+
+### Archiwizowanie
+Najedź na thumbnail generacji w panelu Assets i kliknij ikonę **kosza** — generacja zostanie zarchiwizowana (nie usunięta). Pliki pozostają na dysku.
+
+### Zakładka Archived
+Kliknij ikonę **Archive** (pudełko) w zakładkach Assets, aby zobaczyć zarchiwizowane generacje. Dla każdej masz dwie opcje:
+- **Restore** (zielona ikona) — przywraca generację do głównej listy
+- **Permanent Delete** (czerwona ikona) — trwale usuwa generację i pliki z dysku (nieodwracalne)
+
+---
+
+## Porównanie A/B (Compare)
+
+### Aktywacja
+Kliknij ikonę **kolumn** (Columns) w pasku narzędzi nad canvasem. Przycisk pojawia się gdy masz co najmniej 2 obrazy w projekcie.
+
+### Wybór obrazów
+Pod sliderem pojawiają się dwa rzędy miniaturek:
+- **Rząd A** — kliknij miniaturkę, aby ustawić ją jako Image A (lewa strona / baza)
+- **Rząd B** — kliknij miniaturkę, aby ustawić ją jako Image B (prawa strona / overlay)
+
+Miniaturki oznaczone są literami **C** (Capture) lub **G** (Generation).
+
+### Regulacja przezroczystości
+Nad sliderem widoczny jest suwak **B Opacity** (0-100%). Pozwala regulować przezroczystość Image B nakładanego na Image A:
+- **100%** — standardowe porównanie (lewa: A, prawa: B, ostre cięcie sliderem)
+- **50%** — po prawej stronie widoczny blend A i B
+- **0%** — po obu stronach widoczny tylko Image A
+
+### Wyjście z trybu porównania
+Kliknij ponownie ikonę kolumn w pasku narzędzi.
+
+---
+
 ## Funkcje Zaawansowane
 
 ### Pan (Move Camera)
