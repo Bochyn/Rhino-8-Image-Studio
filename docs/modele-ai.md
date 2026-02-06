@@ -4,11 +4,30 @@ Rhino Image Studio wykorzystuje różne modele AI do generowania i przetwarzania
 
 ## Przegląd Modeli
 
-| Model | Provider | Zastosowanie | Główne parametry |
-|-------|----------|--------------|------------------|
-| Gemini 3 Pro | Google | Generowanie / Edycja | Aspect Ratio, Resolution |
-| Qwen Multi-Angle | fal.ai | Zmiana kąta kamery | Rotation, Elevation, Zoom |
-| Topaz Upscale | fal.ai | Powiększanie | Factor, Model type |
+| Model | Provider | Zastosowanie | Główne parametry | Referencje |
+|-------|----------|--------------|------------------|------------|
+| Gemini 2.5 Flash | Google | Generowanie / Edycja | Aspect Ratio | Max 4 |
+| Gemini 3 Pro | Google | Generowanie / Edycja | Aspect Ratio, Resolution | Max 4 |
+| Qwen Multi-Angle | fal.ai | Zmiana kąta kamery | Rotation, Elevation, Zoom | - |
+| Topaz Upscale | fal.ai | Powiększanie | Factor, Model type | - |
+
+---
+
+## Gemini 2.5 Flash
+
+**ID:** `gemini-2.5-flash-image`
+**Provider:** Google DeepMind
+**Tryby:** Generate, Refine (Edit)
+
+Domyślny model do generowania — szybki i tani. Obsługuje tylko rozdzielczość 1K.
+
+### Możliwości
+
+- Generowanie wielu wariantów (1-4 obrazy)
+- Kontrola wpływu input image (strength)
+- **Reference Images** — do 4 obrazów referencyjnych (materiały, obiekty, styl)
+- Aspect Ratios: takie same jak Gemini 3 Pro (patrz tabela poniżej)
+- Rozdzielczość: tylko 1K (1024px)
 
 ---
 
@@ -48,6 +67,7 @@ Główny model do generowania wizualizacji architektonicznych. Przekształca vie
 - Negative prompt (wykluczanie elementów)
 - Generowanie wielu wariantów (1-4 obrazy)
 - Kontrola wpływu input image (strength)
+- **Reference Images** — do 4 obrazów referencyjnych (materiały, obiekty, styl)
 
 ---
 
@@ -122,6 +142,37 @@ Profesjonalne powiększanie obrazów z wykorzystaniem technologii Topaz Labs. Do
 
 ---
 
+## Reference Images (Referencje)
+
+Oba modele Gemini (Flash i Pro) obsługują **obrazy referencyjne** — dodatkowe obrazy, które model AI wykorzystuje jako kontekst wizualny podczas generowania.
+
+### Zastosowania
+- Materiały i tekstury (np. drewno, marmur)
+- Obiekty do wstawienia (np. meble, pojazdy)
+- Styl wizualny (np. zdjęcie inspiracyjne)
+- Elementy architektury (np. detale elewacji)
+
+### Jak używać
+1. Wybierz model Gemini (Flash lub Pro)
+2. Kliknij przycisk **Reference Images** (ikona `ImagePlus`) w toolbarze canvasu
+3. Dodaj do 4 obrazów (drag & drop lub kliknij `+`)
+4. W prompcie opisz jak model ma użyć referencji, np.:
+   *"Modern office interior with the wooden texture from reference applied to walls and the car placed in the center"*
+5. Kliknij Generate
+
+### Limity
+- Max 4 referencje per projekt
+- Max 10MB per plik
+- Obsługiwane formaty: JPG, PNG, WebP
+- Referencje są zachowywane przy przełączaniu modeli
+
+### Techniczne detale
+- Upload: `POST /api/projects/{projectId}/references` (multipart)
+- Referencje wysyłane jako `inline_data` parts[] w Gemini API request
+- Pliki przechowywane w `%LOCALAPPDATA%/RhinoImageStudio/data/references/`
+
+---
+
 ## Wymagania API Keys
 
 ### Google Gemini
@@ -154,9 +205,11 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsAspectRatio: true,
       supportsNumImages: false,
       supportsStrength: false,
+      supportsReferences: false,
     },
     aspectRatios: [...], // opcjonalne
     resolutions: [...],  // opcjonalne
+    maxReferences: 4,    // opcjonalne - max obrazów referencyjnych
   },
 };
 ```

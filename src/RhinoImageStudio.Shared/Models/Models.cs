@@ -17,6 +17,7 @@ public class Project
     // Navigation properties
     public List<Capture> Captures { get; set; } = new();
     public List<Generation> Generations { get; set; } = new();
+    public List<ReferenceImage> References { get; set; } = new();
 }
 
 /// <summary>
@@ -40,6 +41,20 @@ public class Capture
     public double? CameraLens { get; set; }
 
     // Navigation
+    public Project? Project { get; set; }
+}
+
+/// <summary>
+/// A reference image uploaded by the user for style/content guidance
+/// </summary>
+public class ReferenceImage
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid ProjectId { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string FilePath { get; set; } = string.Empty;
+    public string? ThumbnailPath { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Project? Project { get; set; }
 }
 

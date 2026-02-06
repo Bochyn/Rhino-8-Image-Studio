@@ -39,6 +39,15 @@ export interface Generation {
   settings?: GenerationSettings;
 }
 
+export interface ReferenceImage {
+  id: string;
+  projectId: string;
+  originalFileName: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+}
+
 export interface GenerationSettings {
   aspectRatio: string;
   resolution?: string;       // "1K", "2K", "4K" (Gemini)
@@ -90,6 +99,7 @@ export interface GenerateRequest {
   resolution?: string;
   numImages?: number;
   outputFormat?: 'jpeg' | 'png' | 'Jpeg' | 'Png';
+  referenceImageIds?: string[];
 }
 
 export interface ViewportInfo {

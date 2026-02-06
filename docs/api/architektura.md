@@ -13,6 +13,7 @@ graph TD
     
     WebView -- HTTP/WS --> Backend[Backend .NET 8]
     Backend -- REST --> FalAI[Fal.ai API]
+    Backend -- REST --> Gemini[Google Gemini API]
     Backend -- SQL --> DB[(SQLite)]
     Backend -- File IO --> Storage[File System]
 ```
@@ -98,17 +99,18 @@ interface ModelInfo {
   id: string;
   aspectRatios?: AspectRatioOption[];  // Dostępne proporcje obrazu
   resolutions?: ResolutionOption[];     // Dostępne rozdzielczości
+  maxReferences?: number;              // Max obrazów referencyjnych
 }
 ```
 
 ### Dostępne Modele
 
-| Model | Provider | Rozdzielczości | Domyślny dla |
-|-------|----------|---------------|-------------|
-| **Gemini 2.5 Flash** | Gemini | 1K (1024px) | Generate, Refine |
-| **Gemini 3 Pro** | Gemini | 1K, 2K, 4K | - |
-| **Qwen Multi-Angle** | fal.ai | - | Multi-angle |
-| **Topaz Upscale** | fal.ai | - | Upscale |
+| Model | Provider | Rozdzielczości | Referencje | Domyślny dla |
+|-------|----------|---------------|------------|-------------|
+| **Gemini 2.5 Flash** | Gemini | 1K (1024px) | Max 4 | Generate, Refine |
+| **Gemini 3 Pro** | Gemini | 1K, 2K, 4K | Max 4 | - |
+| **Qwen Multi-Angle** | fal.ai | - | - | Multi-angle |
+| **Topaz Upscale** | fal.ai | - | - | Upscale |
 
 Oba modele Gemini obsługują te same aspect ratios: `1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9`.
 
@@ -116,6 +118,17 @@ Oba modele Gemini obsługują te same aspect ratios: `1:1, 2:3, 3:2, 3:4, 4:3, 4
 **Gemini 3 Pro** wspiera wyższe rozdzielczości (2K, 4K) i parametr `imageSize` w API.
 
 > **Uwaga:** Backend (`GeminiClient.cs`) warunkuje parametr `imageSize` - wysyłany tylko dla modeli Pro. Flash nie wspiera tego parametru.
+
+### Reference Images
+
+Oba modele Gemini obsługują **obrazy referencyjne** — dodatkowe obrazy uploadowane z dysku, które model AI wykorzystuje jako kontekst wizualny (np. materiały, obiekty, styl).
+
+- Upload: `POST /api/projects/{projectId}/references` (multipart, max 10MB/plik)
+- Lista: `GET /api/projects/{projectId}/references`
+- Usuwanie: `DELETE /api/references/{id}`
+- Limit: max 4 referencje per projekt (walidacja frontend + backend)
+- Przekazywanie: jako `inline_data` parts[] w Gemini API request
+- UI: panel pod canvasem z miniaturkami, widoczny tylko dla modeli wspierających referencje
 
 ### Viewport Capture Synchronizacja
 
@@ -133,6 +146,8 @@ Capture automatycznie używa wymiarów zgodnych z wybranymi ustawieniami w edyto
 ## Struktura Bazy Danych
 
 Główne encje:
-- **Session**: Kontener na pracę użytkownika.
-- **Generation**: Pojedyncza operacja (Prompt + Parametry).
-- **Asset**: Plik fizyczny (obraz wejściowy, wynikowy).
+- **Project**: Kontener na pracę użytkownika.
+- **Capture**: Przechwycony obraz z viewportu Rhino.
+- **Generation**: Pojedyncza operacja AI (Prompt + Parametry + Wynik).
+- **ReferenceImage**: Obraz referencyjny uploadowany przez użytkownika (max 4/projekt).
+- **Job**: Zadanie w kolejce przetwarzania (Generate, Refine, MultiAngle, Upscale).

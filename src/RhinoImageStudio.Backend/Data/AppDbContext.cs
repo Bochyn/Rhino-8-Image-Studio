@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Capture> Captures => Set<Capture>();
     public DbSet<Generation> Generations => Set<Generation>();
     public DbSet<Job> Jobs => Set<Job>();
+    public DbSet<ReferenceImage> ReferenceImages => Set<ReferenceImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +80,22 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.ProjectId);
             entity.HasIndex(e => e.ParentGenerationId);
             entity.HasIndex(e => e.CreatedAt);
+        });
+
+        // ReferenceImage
+        modelBuilder.Entity<ReferenceImage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.OriginalFileName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.ThumbnailPath).HasMaxLength(500);
+
+            entity.HasOne(e => e.Project)
+                .WithMany(p => p.References)
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.ProjectId);
         });
 
         // Job
