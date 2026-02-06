@@ -515,6 +515,103 @@ api.MapGet("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
     ));
 });
 
+api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null) return Results.NotFound(new { error = "No job found for this generation" });
+
+    // Only Generate jobs have the full GenerateRequest with masks/references
+    if (job.Type != JobType.Generate)
+        return Results.Json(new { jobType = job.Type.ToString(), info = "Debug details only available for Generate jobs. Raw request stored but uses different schema." }, jsonOptions);
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
+    if (request is null) return Results.Problem("Failed to deserialize job request");
+
+    var sourceType = request.SourceCaptureId != null ? "capture" : request.ParentGenerationId != null ? "generation" : (string?)null;
+    var sourceId = request.SourceCaptureId ?? request.ParentGenerationId;
+
+    // Fetch reference details (thumbnail + filename) for hover previews
+    List<object>? referenceDetails = null;
+    if (request.ReferenceImageIds is { Count: > 0 })
+    {
+        var refIds = request.ReferenceImageIds;
+        var refs = await db.ReferenceImages
+            .Where(r => refIds.Contains(r.Id))
+            .Select(r => new { r.Id, r.OriginalFileName, r.ThumbnailPath, r.FilePath })
+            .ToListAsync();
+        referenceDetails = refIds.Select(rid =>
+        {
+            var r = refs.FirstOrDefault(x => x.Id == rid);
+            return (object)new
+            {
+                id = rid.ToString(),
+                fileName = r?.OriginalFileName ?? "(unknown)",
+                thumbnailUrl = r?.ThumbnailPath != null ? $"/images/{r.ThumbnailPath}" : (r?.FilePath != null ? $"/images/{r.FilePath}" : null)
+            };
+        }).ToList();
+    }
+
+    // Build raw JSON with truncated base64 fields for readability
+    var rawJson = job.RequestJson;
+    // Truncate long base64 strings (mask images, source images) to keep JSON readable
+    rawJson = System.Text.RegularExpressions.Regex.Replace(
+        rawJson,
+        @"""([A-Za-z0-9+/=]{20})[A-Za-z0-9+/=]*([A-Za-z0-9+/=]{20})""",
+        m => $"\"{m.Groups[1].Value}...{m.Groups[2].Value}\"");
+
+    var response = new
+    {
+        prompt = request.Prompt,
+        model = request.Model,
+        aspectRatio = request.AspectRatio,
+        resolution = request.Resolution,
+        sourceType,
+        sourceId,
+        referenceCount = request.ReferenceImageIds?.Count ?? 0,
+        referenceImageIds = request.ReferenceImageIds,
+        referenceDetails,
+        masks = request.MaskLayers?.Select((m, i) => new
+        {
+            index = i + 1,
+            instruction = m.Instruction,
+            imageSize = $"[PNG, ~{m.MaskImageBase64.Length * 3 / 4 / 1024}KB]"
+        }),
+        numImages = request.NumImages,
+        outputFormat = request.OutputFormat,
+        rawJson
+    };
+
+    return Results.Json(response, jsonOptions);
+});
+
+api.MapGet("/generations/{id:guid}/masks", async (Guid id, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null || job.Type != JobType.Generate)
+        return Results.Json(Array.Empty<object>(), jsonOptions);
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
+    if (request?.MaskLayers is null || request.MaskLayers.Count == 0)
+        return Results.Json(Array.Empty<object>(), jsonOptions);
+
+    return Results.Json(request.MaskLayers, jsonOptions);
+});
+
+api.MapGet("/generations/{id:guid}/masks/{index:int}/image", async (Guid id, int index, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null || job.Type != JobType.Generate)
+        return Results.NotFound();
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson,
+        new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
+    if (request?.MaskLayers is null || index < 0 || index >= request.MaskLayers.Count)
+        return Results.NotFound();
+
+    var bytes = Convert.FromBase64String(request.MaskLayers[index].MaskImageBase64);
+    return Results.Bytes(bytes, "image/png");
+});
+
 api.MapDelete("/generations/{id:guid}", async (Guid id, AppDbContext db) =>
 {
     var generation = await db.Generations.FindAsync(id);
@@ -612,6 +709,42 @@ api.MapPost("/generate", async (GenerateRequest request, AppDbContext db, IJobQu
 {
     if (request.ReferenceImageIds != null && request.ReferenceImageIds.Count > 4)
         return Results.BadRequest("Maximum 4 reference images allowed");
+
+    // --- Mask validation ---
+    if (request.MaskLayers != null)
+    {
+        if (request.MaskLayers.Count > 8)
+            return Results.BadRequest("Maximum 8 mask layers allowed");
+
+        for (int i = 0; i < request.MaskLayers.Count; i++)
+        {
+            var mask = request.MaskLayers[i];
+            if (string.IsNullOrWhiteSpace(mask.Instruction))
+                return Results.BadRequest($"Mask layer {i + 1} must have an instruction");
+            if (string.IsNullOrWhiteSpace(mask.MaskImageBase64))
+                return Results.BadRequest($"Mask layer {i + 1} must have image data (MaskImageBase64)");
+            try { Convert.FromBase64String(mask.MaskImageBase64); }
+            catch (FormatException) { return Results.BadRequest($"Mask layer {i + 1} contains invalid base64 image data"); }
+        }
+
+        // fal.ai models do not support masks
+        var selectedModel = request.Model ?? "gemini-2.5-flash-image";
+        if (selectedModel.StartsWith("fal-"))
+            return Results.BadRequest("Mask layers are not supported for fal.ai models");
+
+        // Validate total image count per model: 1 (source) + refs + masks <= maxTotalImages
+        var refCount = request.ReferenceImageIds?.Count ?? 0;
+        var maskCount = request.MaskLayers.Count;
+        var hasSource = request.SourceCaptureId.HasValue || request.ParentGenerationId.HasValue;
+        var totalImages = (hasSource ? 1 : 0) + refCount + maskCount;
+
+        // Flash model: max 3 total images; Pro model: max 14 total images
+        var isProModel = selectedModel.Contains("3-pro") || selectedModel.Contains("2.5-pro");
+        var maxTotalImages = isProModel ? 14 : 3;
+
+        if (totalImages > maxTotalImages)
+            return Results.BadRequest($"Total image count ({totalImages}) exceeds limit ({maxTotalImages}) for model {selectedModel}. Reduce references or masks.");
+    }
 
     var job = new Job
     {

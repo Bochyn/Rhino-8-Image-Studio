@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/Common/Button';
 import { CompareSlider } from '@/components/Studio/CompareSlider';
+import { MaskCanvas } from '@/components/Studio/MaskCanvas';
 import { SmoothProgress } from '@/components/Common/SmoothProgress';
-import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save, ImagePlus } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save, ImagePlus, Paintbrush } from 'lucide-react';
 import { Job, Capture, Generation } from '@/lib/types';
+import type { MaskState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface CompareItem {
@@ -26,6 +28,13 @@ interface CanvasStageProps {
   captures?: Capture[];
   generations?: Generation[];
   selectedItemId?: string | null;
+  maskState?: MaskState;
+  onMaskLayerUpdate?: (layerId: string, imageData: ImageData) => void;
+  isMaskMode?: boolean;
+  onToggleMaskMode?: () => void;
+  supportsMasks?: boolean;
+  sourceWidth?: number;
+  sourceHeight?: number;
 }
 
 export function CanvasStage({
@@ -40,6 +49,13 @@ export function CanvasStage({
   captures,
   generations,
   selectedItemId,
+  maskState,
+  onMaskLayerUpdate,
+  isMaskMode,
+  onToggleMaskMode,
+  supportsMasks,
+  sourceWidth,
+  sourceHeight,
 }: CanvasStageProps) {
   const [zoom, setZoom] = useState(1);
   const [compareMode, setCompareMode] = useState(false);
@@ -86,6 +102,8 @@ export function CanvasStage({
   // Default selections when entering compare mode
   const handleEnterCompare = () => {
     if (!compareMode) {
+      // Turn off mask mode when entering compare
+      if (isMaskMode && onToggleMaskMode) onToggleMaskMode();
       // Entering compare mode - set defaults
       if (selectedItemId) {
         setImageBId(selectedItemId);
@@ -174,6 +192,23 @@ export function CanvasStage({
               title="Reference Images"
             >
               <ImagePlus className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+
+        {supportsMasks && (
+          <>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Button
+              variant={isMaskMode ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={onToggleMaskMode}
+              className={`h-8 w-8 rounded-full transition-colors ${
+                isMaskMode ? 'bg-primary text-background hover:bg-primary/90' : 'hover:bg-primary/10 text-primary'
+              }`}
+              title="Mask Drawing"
+            >
+              <Paintbrush className="h-4 w-4" />
             </Button>
           </>
         )}
@@ -362,12 +397,26 @@ export function CanvasStage({
                 </div>
               </div>
             ) : (
-              <img
-                src={currentImage}
-                alt="Current"
-                className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-sm shadow-2xl"
-                draggable={false}
-              />
+              <>
+                <img
+                  src={currentImage}
+                  alt="Current"
+                  className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-sm shadow-2xl"
+                  draggable={false}
+                />
+                {isMaskMode && maskState && sourceWidth && sourceHeight && (
+                  <MaskCanvas
+                    sourceWidth={sourceWidth}
+                    sourceHeight={sourceHeight}
+                    zoom={zoom}
+                    layers={maskState.layers}
+                    activeLayerId={maskState.activeLayerId}
+                    brush={maskState.brush}
+                    isActive={isMaskMode}
+                    onLayerUpdate={onMaskLayerUpdate!}
+                  />
+                )}
+              </>
             )}
           </div>
         ) : (

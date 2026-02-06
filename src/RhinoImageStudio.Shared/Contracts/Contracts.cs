@@ -52,6 +52,8 @@ public record CaptureDto(
 // Generation Contracts
 // ============================================================================
 
+public record MaskLayerData(string MaskImageBase64, string Instruction);
+
 public record GenerateRequest(
     Guid ProjectId,
     string Prompt,
@@ -62,7 +64,8 @@ public record GenerateRequest(
     string? Resolution = null,   // e.g., "1K", "2K", "4K"
     int NumImages = 1,
     string? OutputFormat = null,  // e.g., "png", "jpeg"
-    List<Guid>? ReferenceImageIds = null
+    List<Guid>? ReferenceImageIds = null,
+    List<MaskLayerData>? MaskLayers = null
 );
 
 public record RefineRequest(

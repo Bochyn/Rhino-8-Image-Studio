@@ -4,12 +4,12 @@ Rhino Image Studio wykorzystuje różne modele AI do generowania i przetwarzania
 
 ## Przegląd Modeli
 
-| Model | Provider | Zastosowanie | Główne parametry | Referencje |
-|-------|----------|--------------|------------------|------------|
-| Gemini 2.5 Flash | Google | Generowanie / Edycja | Aspect Ratio | Max 4 |
-| Gemini 3 Pro | Google | Generowanie / Edycja | Aspect Ratio, Resolution | Max 4 |
-| Qwen Multi-Angle | fal.ai | Zmiana kąta kamery | Rotation, Elevation, Zoom | - |
-| Topaz Upscale | fal.ai | Powiększanie | Factor, Model type | - |
+| Model | Provider | Zastosowanie | Główne parametry | Referencje | Maski |
+|-------|----------|--------------|------------------|------------|-------|
+| Gemini 2.5 Flash | Google | Generowanie / Edycja / Inpainting | Aspect Ratio | Max 4 | Max 2 |
+| Gemini 3 Pro | Google | Generowanie / Edycja / Inpainting | Aspect Ratio, Resolution | Max 4 | Max 8 |
+| Qwen Multi-Angle | fal.ai | Zmiana kąta kamery | Rotation, Elevation, Zoom | - | - |
+| Topaz Upscale | fal.ai | Powiększanie | Factor, Model type | - | - |
 
 ---
 
@@ -26,6 +26,7 @@ Domyślny model do generowania — szybki i tani. Obsługuje tylko rozdzielczoś
 - Generowanie wielu wariantów (1-4 obrazy)
 - Kontrola wpływu input image (strength)
 - **Reference Images** — do 4 obrazów referencyjnych (materiały, obiekty, styl)
+- **Mask Inpainting** — do 2 warstw masek (max 3 obrazy total: source + refs + masks)
 - Aspect Ratios: takie same jak Gemini 3 Pro (patrz tabela poniżej)
 - Rozdzielczość: tylko 1K (1024px)
 
@@ -68,6 +69,7 @@ Główny model do generowania wizualizacji architektonicznych. Przekształca vie
 - Generowanie wielu wariantów (1-4 obrazy)
 - Kontrola wpływu input image (strength)
 - **Reference Images** — do 4 obrazów referencyjnych (materiały, obiekty, styl)
+- **Mask Inpainting** — do 8 warstw masek (max 14 obrazów total)
 
 ---
 
@@ -173,6 +175,54 @@ Oba modele Gemini (Flash i Pro) obsługują **obrazy referencyjne** — dodatkow
 
 ---
 
+## Multi-Mask Inpainting (Maski)
+
+Oba modele Gemini obsługują **rysowanie masek** — zaznaczanie konkretnych obszarów obrazu do edycji. Każda maska ma własną instrukcję, a Gemini edytuje tylko zamaskowane regiony.
+
+### Jak używać
+
+1. Wybierz model Gemini (Flash lub Pro)
+2. Wybierz capture lub generację jako źródło
+3. W sekcji **Mask Layers** w panelu Editor kliknij **Add** aby dodać warstwę maski
+4. Kliknij **Draw** aby wejść w tryb rysowania
+5. Narysuj maskę na obrazie (biały = edytuj, przeźroczysty = zachowaj)
+6. Wpisz instrukcję dla maski, np. *"Replace with wooden texture"*
+7. Dodaj kolejne maski dla innych regionów (opcjonalnie)
+8. W głównym prompcie opisz ogólny kontekst
+9. Kliknij **Generate**
+
+### Limity masek
+
+| Model | Max masek | Max obrazów total | Formuła |
+|-------|-----------|-------------------|---------|
+| Flash | 2 | 3 | source + refs + masks ≤ 3 |
+| Pro | 8 | 14 | source + refs + masks ≤ 14 |
+| fal.ai | 0 | - | Maski nieobsługiwane |
+
+Liczba dostępnych masek zmniejsza się dynamicznie gdy dodajesz referencje (i odwrotnie).
+
+### Narzędzia rysowania
+
+- **Brush** — rysowanie maski (pędzel okrągły, rozmiar 5-200px)
+- **Eraser** — wymazywanie fragmentów maski
+- **Undo/Redo** — Ctrl+Z / Ctrl+Shift+Z (20 kroków dla 1K, 10 dla 4K)
+- **Kolory warstw** — 8 kolorów (czerwony, niebieski, zielony, żółty, fioletowy, pomarańczowy, cyjan, różowy)
+
+### Interakcja z innymi trybami
+
+- Mask mode i Compare mode wzajemnie się wykluczają
+- Maski są czyszczone przy zmianie wybranego elementu (capture/generacja)
+- Maski są przycinane gdy zmiana modelu/referencji zmniejsza dostępne sloty
+
+### Techniczne detale
+
+- Maski wysyłane w `GenerateRequest.MaskLayers` jako base64 PNG
+- Backend buduje augmented prompt: `"MASK 1 instruction: ... MASK 2 instruction: ... Overall context: [prompt]"`
+- Maski nie są persystowane w DB — efemeryczne, per-request
+- Rysowanie na offscreen canvas w rozdzielczości źródłowej (nie ekranowej)
+
+---
+
 ## Wymagania API Keys
 
 ### Google Gemini
@@ -206,10 +256,13 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsNumImages: false,
       supportsStrength: false,
       supportsReferences: false,
+      supportsMasks: false,
     },
     aspectRatios: [...], // opcjonalne
     resolutions: [...],  // opcjonalne
     maxReferences: 4,    // opcjonalne - max obrazów referencyjnych
+    maxMaskLayers: 2,    // opcjonalne - max warstw masek
+    maxTotalImages: 3,   // opcjonalne - max obrazów w jednym request
   },
 };
 ```

@@ -1,3 +1,51 @@
+// ============================================================================
+// MASK CONSTANTS
+// ============================================================================
+
+export const MASK_COLORS = [
+  '#ef4444', // red
+  '#3b82f6', // blue
+  '#22c55e', // green
+  '#eab308', // yellow
+  '#a855f7', // purple
+  '#f97316', // orange
+  '#06b6d4', // cyan
+  '#ec4899', // pink
+] as const;
+
+// ============================================================================
+// MASK TYPES
+// ============================================================================
+
+export interface MaskLayer {
+  id: string;
+  name: string;
+  color: string;
+  instruction: string;
+  visible: boolean;
+  imageData: ImageData | null; // Canvas pixel data for this layer
+}
+
+export interface BrushSettings {
+  size: number;      // 5-200 pixels
+  mode: 'brush' | 'eraser';
+}
+
+export interface MaskState {
+  layers: MaskLayer[];
+  activeLayerId: string | null;
+  brush: BrushSettings;
+}
+
+export interface MaskLayerPayload {
+  maskImageBase64: string;  // Binary PNG, white = edit, black = keep
+  instruction: string;
+}
+
+// ============================================================================
+// PROJECT & DATA TYPES
+// ============================================================================
+
 export interface Project {
   id: string;
   name: string;
@@ -102,6 +150,7 @@ export interface GenerateRequest {
   numImages?: number;
   outputFormat?: 'jpeg' | 'png' | 'Jpeg' | 'Png';
   referenceImageIds?: string[];
+  maskLayers?: MaskLayerPayload[];
 }
 
 export interface ViewportInfo {
@@ -117,4 +166,20 @@ export interface RhinoBridge {
   GetDisplayModes(): Promise<string[]>;
   GetViewports(): Promise<ViewportInfo[]>;
   GetApiUrl(): Promise<string>;
+}
+
+export interface GenerationDebugInfo {
+  prompt: string;
+  model?: string;
+  aspectRatio?: string;
+  resolution?: string;
+  sourceType?: 'capture' | 'generation';
+  sourceId?: string;
+  referenceCount: number;
+  referenceImageIds?: string[];
+  referenceDetails?: { id: string; fileName: string; thumbnailUrl?: string }[];
+  masks?: { index: number; instruction: string; imageSize: string }[];
+  numImages?: number;
+  outputFormat?: string;
+  rawJson?: string;
 }

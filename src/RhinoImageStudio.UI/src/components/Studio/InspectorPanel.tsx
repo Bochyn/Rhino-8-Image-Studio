@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Capture, Generation, Job } from '@/lib/types';
+import type { MaskState } from '@/lib/types';
 import { Button } from '@/components/Common/Button';
 import {
   Sparkles,
@@ -10,7 +11,12 @@ import {
   ChevronDown,
   Wand2,
   Settings2,
-  RotateCcw
+  RotateCcw,
+  Paintbrush,
+  Eye,
+  EyeOff,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -48,6 +54,16 @@ interface InspectorPanelProps {
   onGenerate: (prompt: string, settings: any) => void;
   onSettingsChange?: (settings: AllModelSettings, modelId: string) => void;
   jobs: Job[];
+  maskState?: MaskState;
+  onAddMaskLayer?: () => void;
+  onRemoveMaskLayer?: (layerId: string) => void;
+  onSelectMaskLayer?: (layerId: string) => void;
+  onUpdateMaskInstruction?: (layerId: string, instruction: string) => void;
+  onToggleMaskVisibility?: (layerId: string) => void;
+  isMaskMode?: boolean;
+  onToggleMaskMode?: () => void;
+  maxMaskLayers?: number;
+  supportsMasks?: boolean;
 }
 
 export function InspectorPanel({
@@ -56,6 +72,16 @@ export function InspectorPanel({
   onGenerate,
   onSettingsChange,
   jobs,
+  maskState,
+  onAddMaskLayer,
+  onRemoveMaskLayer,
+  onSelectMaskLayer,
+  onUpdateMaskInstruction,
+  onToggleMaskVisibility,
+  isMaskMode,
+  onToggleMaskMode,
+  maxMaskLayers,
+  supportsMasks,
 }: InspectorPanelProps) {
   const [mode, setMode] = useState<ModeType>('generate');
   const [prompt, setPrompt] = useState('');
@@ -307,6 +333,99 @@ export function InspectorPanel({
                 placeholder={mode === 'generate' ? "Describe the image..." : "Describe changes..."}
                 className="w-full h-24 bg-card border border-border rounded-xl p-3 text-sm text-primary placeholder:text-accent/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+          )}
+
+          {/* Mask Layers Section */}
+          {supportsMasks && hasSource && (mode === 'generate' || mode === 'refine') && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-accent uppercase tracking-wider">
+                  Mask Layers
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={onToggleMaskMode}
+                    className={cn(
+                      "flex items-center gap-1 text-[10px] px-2 py-1 rounded-md transition-colors",
+                      isMaskMode
+                        ? "bg-primary/20 text-primary"
+                        : "text-secondary hover:text-primary"
+                    )}
+                  >
+                    <Paintbrush className="h-3 w-3" />
+                    {isMaskMode ? 'Drawing' : 'Draw'}
+                  </button>
+                  <button
+                    onClick={onAddMaskLayer}
+                    disabled={!maxMaskLayers || (maskState?.layers.length ?? 0) >= maxMaskLayers}
+                    className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Layer list */}
+              {maskState && maskState.layers.length > 0 ? (
+                <div className="space-y-1.5">
+                  {maskState.layers.map((layer) => (
+                    <div
+                      key={layer.id}
+                      onClick={() => onSelectMaskLayer?.(layer.id)}
+                      className={cn(
+                        "p-2 rounded-lg border cursor-pointer transition-all",
+                        maskState.activeLayerId === layer.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-border/80"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <div className="relative w-3.5 h-3.5 flex-shrink-0">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: layer.color }}
+                          />
+                          <div className={cn(
+                            "absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-panel",
+                            layer.imageData && layer.instruction.trim()
+                              ? "bg-green-500"
+                              : "bg-amber-400"
+                          )} />
+                        </div>
+                        <span className="text-[10px] font-medium text-primary flex-1 truncate">
+                          {layer.name}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onToggleMaskVisibility?.(layer.id); }}
+                          className="text-secondary hover:text-primary p-0.5"
+                        >
+                          {layer.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onRemoveMaskLayer?.(layer.id); }}
+                          className="text-secondary hover:text-danger p-0.5"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={layer.instruction}
+                        onChange={(e) => onUpdateMaskInstruction?.(layer.id, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="Instruction for this mask..."
+                        className="w-full text-[11px] bg-card border border-border rounded-md px-2 py-1.5 text-primary placeholder:text-accent/40 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-secondary italic">
+                  No masks yet. Click "Add" to create a mask layer.
+                </p>
+              )}
             </div>
           )}
 
@@ -596,6 +715,11 @@ export function InspectorPanel({
           )}
           {mode === 'generate' ? 'Generate' : mode === 'refine' ? 'Refine' : mode === 'upscale' ? 'Upscale' : 'Move Camera'}
         </Button>
+        {maskState && maskState.layers.length > 0 && (
+          <p className="text-[10px] text-secondary mt-1.5 text-center">
+            {maskState.layers.filter(l => l.imageData && l.instruction.trim()).length}/{maskState.layers.length} masks ready
+          </p>
+        )}
       </div>
     </div>
   );
