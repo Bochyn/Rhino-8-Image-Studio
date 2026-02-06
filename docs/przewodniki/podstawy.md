@@ -124,11 +124,32 @@ Liczba dostępnych masek zmniejsza się dynamicznie gdy dodajesz referencje (i o
 - Maski są czyszczone przy zmianie wybranego elementu (capture/generacja)
 - Maski są automatycznie przycinane gdy zmiana modelu lub referencji zmniejsza dostępne sloty
 
+### Historia masek
+
+Po wygenerowaniu obrazu z maskami, dane masek (rysunek + instrukcje) są zapisywane w żądaniu generacji. Gdy wrócisz do tej generacji w historii:
+- Maski automatycznie załadują się na canvas z oryginalnymi kolorami warstw i instrukcjami
+- Możesz je edytować i ponownie wygenerować obraz
+
+### Diagnostyka (Debug)
+
+Najedź na thumbnail generacji i kliknij ikonę **Bug** — otworzy się modal ze szczegółami żądania wysłanego do AI:
+- Prompt, model, aspect ratio, rozdzielczość
+- Źródło (capture/generacja), referencje
+- Maski (liczba, rozmiar, instrukcje)
+- Przycisk **Copy JSON** kopiuje pełne dane do schowka
+
+### Wskaźniki gotowości masek
+
+Przy każdej warstwie maski widoczna jest kropka statusu:
+- **Zielona** — maska gotowa (ma rysunek + instrukcję)
+- **Amber** — niekompletna (brak rysunku lub instrukcji)
+
+Pod przyciskiem Generate wyświetlany jest licznik *"X/Y masks ready"*.
+
 ### Wskazówki
 
 - Opisuj instrukcje masek precyzyjnie — każda maska jest wysyłana do AI z numerem i opisem
 - W głównym prompcie opisz kontekst całej sceny, a w maskach — zmiany lokalne
-- Maski nie są zapisywane w bazie — istnieją tylko w bieżącej sesji edycji
 
 ---
 

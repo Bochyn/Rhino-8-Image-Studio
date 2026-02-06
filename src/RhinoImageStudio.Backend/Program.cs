@@ -530,6 +530,35 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
     var sourceType = request.SourceCaptureId != null ? "capture" : request.ParentGenerationId != null ? "generation" : (string?)null;
     var sourceId = request.SourceCaptureId ?? request.ParentGenerationId;
 
+    // Fetch reference details (thumbnail + filename) for hover previews
+    List<object>? referenceDetails = null;
+    if (request.ReferenceImageIds is { Count: > 0 })
+    {
+        var refIds = request.ReferenceImageIds;
+        var refs = await db.ReferenceImages
+            .Where(r => refIds.Contains(r.Id))
+            .Select(r => new { r.Id, r.OriginalFileName, r.ThumbnailPath, r.FilePath })
+            .ToListAsync();
+        referenceDetails = refIds.Select(rid =>
+        {
+            var r = refs.FirstOrDefault(x => x.Id == rid);
+            return (object)new
+            {
+                id = rid.ToString(),
+                fileName = r?.OriginalFileName ?? "(unknown)",
+                thumbnailUrl = r?.ThumbnailPath != null ? $"/images/{r.ThumbnailPath}" : (r?.FilePath != null ? $"/images/{r.FilePath}" : null)
+            };
+        }).ToList();
+    }
+
+    // Build raw JSON with truncated base64 fields for readability
+    var rawJson = job.RequestJson;
+    // Truncate long base64 strings (mask images, source images) to keep JSON readable
+    rawJson = System.Text.RegularExpressions.Regex.Replace(
+        rawJson,
+        @"""([A-Za-z0-9+/=]{200})[A-Za-z0-9+/=]+""",
+        m => $"\"{m.Groups[1].Value}...[truncated]\"");
+
     var response = new
     {
         prompt = request.Prompt,
@@ -540,6 +569,7 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
         sourceId,
         referenceCount = request.ReferenceImageIds?.Count ?? 0,
         referenceImageIds = request.ReferenceImageIds,
+        referenceDetails,
         masks = request.MaskLayers?.Select((m, i) => new
         {
             index = i + 1,
@@ -547,7 +577,8 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
             imageSize = $"[PNG, ~{m.MaskImageBase64.Length * 3 / 4 / 1024}KB]"
         }),
         numImages = request.NumImages,
-        outputFormat = request.OutputFormat
+        outputFormat = request.OutputFormat,
+        rawJson
     };
 
     return Results.Json(response, jsonOptions);

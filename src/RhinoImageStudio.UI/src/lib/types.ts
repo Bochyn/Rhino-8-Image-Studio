@@ -177,7 +177,9 @@ export interface GenerationDebugInfo {
   sourceId?: string;
   referenceCount: number;
   referenceImageIds?: string[];
+  referenceDetails?: { id: string; fileName: string; thumbnailUrl?: string }[];
   masks?: { index: number; instruction: string; imageSize: string }[];
   numImages?: number;
   outputFormat?: string;
+  rawJson?: string;
 }

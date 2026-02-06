@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { GenerationDebugInfo } from '@/lib/types';
-import { X, Bug, Loader2, Copy, Check } from 'lucide-react';
+import { X, Bug, Loader2, Copy, Check, Code } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DebugModalProps {
@@ -15,6 +15,7 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(false);
 
   // Escape key to close
   useEffect(() => {
@@ -30,6 +31,7 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
       setError(null);
       setDebugInfo(null);
       setCopied(false);
+      setShowRawJson(false);
 
       api.generations.getDebugInfo(generationId)
         .then((data) => {
@@ -51,7 +53,6 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for environments without clipboard API
       console.error('Failed to copy to clipboard');
     }
   };
@@ -93,7 +94,7 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
             </div>
           )}
 
-          {debugInfo && (
+          {debugInfo && !showRawJson && (
             <>
               {/* Prompt */}
               <Section label="Prompt">
@@ -132,12 +133,10 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
                     ? `${debugInfo.referenceCount} reference(s)`
                     : 'None'}
                 </Value>
-                {debugInfo.referenceImageIds && debugInfo.referenceImageIds.length > 0 && (
-                  <div className="mt-1 space-y-0.5">
-                    {debugInfo.referenceImageIds.map((refId, i) => (
-                      <p key={refId} className="text-xs text-accent font-mono">
-                        [{i}] {truncateId(refId)}
-                      </p>
+                {debugInfo.referenceDetails && debugInfo.referenceDetails.length > 0 && (
+                  <div className="mt-1.5 space-y-1">
+                    {debugInfo.referenceDetails.map((ref, i) => (
+                      <ReferenceRow key={ref.id} index={i} ref_={ref} />
                     ))}
                   </div>
                 )}
@@ -145,15 +144,16 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
 
               {/* Masks */}
               {debugInfo.masks && debugInfo.masks.length > 0 && (
-                <Section label="Masks">
-                  <div className="space-y-2">
+                <Section label={`Masks (${debugInfo.masks.length})`}>
+                  <div className="space-y-1.5">
                     {debugInfo.masks.map((mask, i) => (
-                      <div key={i} className="bg-card rounded-lg p-2 border border-border">
-                        <div className="grid grid-cols-3 gap-2">
-                          <KeyValue label="Index" value={String(mask.index)} />
-                          <KeyValue label="Image Size" value={mask.imageSize} />
-                          <KeyValue label="Instruction" value={mask.instruction || '-'} />
-                        </div>
+                      <div key={i} className="bg-card rounded-lg p-2.5 border border-border">
+                        <p className="text-sm text-primary break-words">
+                          {mask.instruction || '(no instruction)'}
+                        </p>
+                        <p className="text-[10px] text-secondary mt-1 font-mono">
+                          #{mask.index} · {mask.imageSize}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -161,11 +161,30 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
               )}
             </>
           )}
+
+          {/* Raw JSON view */}
+          {debugInfo && showRawJson && (
+            <pre className="text-xs text-primary bg-card rounded-lg p-3 overflow-auto max-h-[60vh] whitespace-pre-wrap break-all font-mono border border-border">
+              {formatRawJson(debugInfo.rawJson)}
+            </pre>
+          )}
         </div>
 
         {/* Footer */}
         {debugInfo && (
           <div className="flex justify-end gap-2 p-4 border-t border-border sticky bottom-0 bg-panel rounded-b-2xl">
+            <button
+              onClick={() => setShowRawJson(!showRawJson)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
+                showRawJson
+                  ? "bg-primary/10 text-primary border-primary/30"
+                  : "bg-card text-primary border-border hover:bg-card-hover"
+              )}
+            >
+              <Code className="h-3.5 w-3.5" />
+              {showRawJson ? 'Details' : 'View JSON'}
+            </button>
             <button
               onClick={handleCopyJson}
               className={cn(
@@ -220,7 +239,47 @@ function KeyValue({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ReferenceRow({ index, ref_ }: { index: number; ref_: { id: string; fileName: string; thumbnailUrl?: string } }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative flex items-center gap-2 group"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <p className="text-xs text-accent font-mono">
+        [{index}] {truncateId(ref_.id)}
+      </p>
+      <span className="text-[10px] text-secondary truncate max-w-[180px]" title={ref_.fileName}>
+        {ref_.fileName}
+      </span>
+
+      {/* Tooltip with thumbnail */}
+      {showTooltip && ref_.thumbnailUrl && (
+        <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-card border border-border rounded-lg p-1.5 shadow-lg">
+          <img
+            src={ref_.thumbnailUrl}
+            alt={ref_.fileName}
+            className="w-16 h-16 object-cover rounded"
+          />
+          <p className="text-[10px] text-secondary mt-1 max-w-[120px] truncate">{ref_.fileName}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function truncateId(id: string): string {
   if (id.length <= 12) return id;
   return `${id.slice(0, 8)}...${id.slice(-4)}`;
+}
+
+function formatRawJson(rawJson?: string): string {
+  if (!rawJson) return '(no raw JSON available)';
+  try {
+    return JSON.stringify(JSON.parse(rawJson), null, 2);
+  } catch {
+    return rawJson;
+  }
 }

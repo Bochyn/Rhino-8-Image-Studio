@@ -21,6 +21,8 @@ Status: Development / Open Source Preparation
 - [x] **Reference Images**: Upload do 4 referencji (materiały, obiekty, styl) wysyłanych z promptem do Gemini.
 - [x] **Generation Archive**: Soft-delete generacji z zakładką "Archived" — przywracanie i permanentne usuwanie.
 - [x] **Multi-Mask Inpainting**: Rysowanie masek na canvasie z per-mask instrukcjami, edycja regionów przez Gemini.
+- [x] **Request Debug Inspector**: Podgląd szczegółów żądania AI z poziomu thumbnails generacji.
+- [x] **Mask History**: Automatyczne ładowanie masek z historii generacji (persystencja via Job.RequestJson).
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).
@@ -101,8 +103,11 @@ Po wybraniu generacji z historii, `InspectorPanel` automatycznie przywraca:
 - **Model** - z pola `Generation.modelId` (dodane do `GenerationDto`)
 - **AR/Resolution** - z pola `Generation.parametersJson` (serializowane przy tworzeniu)
 - **Multi-angle** (azimuth/elevation/zoom) - z dedykowanych pól
+- **Maski inpainting** - z `Job.RequestJson` via `GET /api/generations/{id}/masks`
 
 Parametry generacji zapisywane są w `ParametersJson` jako JSON: `{"aspectRatio":"16:9","resolution":"1K",...}`
+
+Maski nie mają dedykowanych pól w bazie — są odczytywane z `Job.RequestJson` (pełny request zapisany przy tworzeniu joba). Endpoint `/masks` deserializuje `MaskLayers` i zwraca base64 PNG + instrukcje. Frontend rekonstruuje `MaskLayer[]` via `importMaskFromBase64()`.
 
 ### Archiwizacja generacji (Soft-Delete)
 
@@ -117,6 +122,8 @@ Generacje mogą być archiwizowane (soft-delete) zamiast trwale usuwane. Model `
 | `PUT /api/generations/{id}/restore` | Przywróć | Ustawia IsArchived=false |
 | `DELETE /api/generations/{id}/permanent` | Usuń trwale | Usuwa pliki + rekord (wymaga archived) |
 | `GET /api/projects/{id}/generations/archived` | Lista archived | Filtruje IsArchived=true |
+| `GET /api/generations/{id}/debug` | Debug info | Sanitized request (prompt, model, settings, maski, referencje) |
+| `GET /api/generations/{id}/masks` | Mask data | Pełne base64 PNG masek + instrukcje z Job.RequestJson |
 
 Istniejące endpointy listy generacji automatycznie filtrują `!IsArchived`.
 
