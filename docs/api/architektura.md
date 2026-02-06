@@ -100,17 +100,19 @@ interface ModelInfo {
   aspectRatios?: AspectRatioOption[];  // Dostępne proporcje obrazu
   resolutions?: ResolutionOption[];     // Dostępne rozdzielczości
   maxReferences?: number;              // Max obrazów referencyjnych
+  maxMaskLayers?: number;              // Max warstw masek inpainting
+  maxTotalImages?: number;             // Max obrazów w jednym request (source + refs + masks)
 }
 ```
 
 ### Dostępne Modele
 
-| Model | Provider | Rozdzielczości | Referencje | Domyślny dla |
-|-------|----------|---------------|------------|-------------|
-| **Gemini 2.5 Flash** | Gemini | 1K (1024px) | Max 4 | Generate, Refine |
-| **Gemini 3 Pro** | Gemini | 1K, 2K, 4K | Max 4 | - |
-| **Qwen Multi-Angle** | fal.ai | - | - | Multi-angle |
-| **Topaz Upscale** | fal.ai | - | - | Upscale |
+| Model | Provider | Rozdzielczości | Referencje | Maski | Domyślny dla |
+|-------|----------|---------------|------------|-------|-------------|
+| **Gemini 2.5 Flash** | Gemini | 1K (1024px) | Max 4 | Max 2 | Generate, Refine |
+| **Gemini 3 Pro** | Gemini | 1K, 2K, 4K | Max 4 | Max 8 | - |
+| **Qwen Multi-Angle** | fal.ai | - | - | - | Multi-angle |
+| **Topaz Upscale** | fal.ai | - | - | - | Upscale |
 
 Oba modele Gemini obsługują te same aspect ratios: `1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9`.
 

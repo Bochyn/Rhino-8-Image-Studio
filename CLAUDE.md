@@ -1,5 +1,5 @@
 # SPEC.md — Rhino Image Studio (Windows)
-Wersja: 0.4 (MVP + Model-Aware AR/Resolution)
+Wersja: 0.5 (MVP + Inpainting)
 Status: Development / Open Source Preparation
 
 ## 1. Streszczenie (Executive Summary)
@@ -20,6 +20,7 @@ Status: Development / Open Source Preparation
 - [x] **A/B Comparison**: Rozbudowany slider z regulowaną opacity overlay, wybór dowolnych obrazów A/B z galerii thumbnails.
 - [x] **Reference Images**: Upload do 4 referencji (materiały, obiekty, styl) wysyłanych z promptem do Gemini.
 - [x] **Generation Archive**: Soft-delete generacji z zakładką "Archived" — przywracanie i permanentne usuwanie.
+- [x] **Multi-Mask Inpainting**: Rysowanie masek na canvasie z per-mask instrukcjami, edycja regionów przez Gemini.
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).
@@ -48,12 +49,12 @@ Status: Development / Open Source Preparation
 
 ### Dostępne modele generacji
 
-| Model | ID | Provider | Rozdzielczości | Referencje | Domyślny | Koszt |
-|-------|----|----------|---------------|------------|----------|-------|
-| **Gemini 2.5 Flash** | `gemini-2.5-flash-image` | Gemini API | 1K | Max 4 | Tak | ~$0.04/obraz |
-| **Gemini 3 Pro** | `gemini-3-pro-image-preview` | Gemini API | 1K, 2K, 4K | Max 4 | Nie | wyższy |
-| **Qwen Multi-Angle** | `fal-ai/qwen-image-edit-2511-multiple-angles` | fal.ai | - | - | (tryb Pan) | - |
-| **Topaz Upscale** | `fal-ai/topaz/upscale/image` | fal.ai | 2x/4x | - | (tryb Upscale) | - |
+| Model | ID | Provider | Rozdzielczości | Referencje | Maski | Domyślny | Koszt |
+|-------|----|----------|---------------|------------|-------|----------|-------|
+| **Gemini 2.5 Flash** | `gemini-2.5-flash-image` | Gemini API | 1K | Max 4 | Max 2 | Tak | ~$0.04/obraz |
+| **Gemini 3 Pro** | `gemini-3-pro-image-preview` | Gemini API | 1K, 2K, 4K | Max 4 | Max 8 | Nie | wyższy |
+| **Qwen Multi-Angle** | `fal-ai/qwen-image-edit-2511-multiple-angles` | fal.ai | - | - | - | (tryb Pan) | - |
+| **Topaz Upscale** | `fal-ai/topaz/upscale/image` | fal.ai | 2x/4x | - | - | (tryb Upscale) | - |
 
 **Gemini 2.5 Flash** jest domyślnym modelem generacji (tani, szybki, do iteracji). **Gemini 3 Pro** służy do finalnych renderów w wyższych rozdzielczościach (2K/4K).
 
@@ -129,6 +130,56 @@ Rozbudowany slider porównania z regulowaną przezroczystością:
 - **Thumbnail gallery** pod sliderem: dwa rzędy (A/B) miniaturek 48x48px z oznaczeniami C/G
 - Domyślne selekcje: B = aktualnie wybrany element, A = źródło (capture/parent generation)
 - Aktywacja: przycisk Columns w floating toolbar
+
+### Multi-Mask Inpainting
+
+Funkcja rysowania masek na canvasie z per-mask instrukcjami — Gemini edytuje tylko zamaskowane regiony.
+
+**Architektura:**
+- Maski to efemeryczne dane (nie persystowane w DB) — istnieją tylko w sesji edycji
+- Frontend rysuje maski na offscreen canvas → eksportuje jako binary PNG (biały = edytuj, czarny = zachowaj)
+- Backend buduje augmented prompt z numerowanymi instrukcjami masek
+- Maski wysyłane jako dodatkowe `inline_data` parts w Gemini API request
+
+**Limity obrazów Gemini (source + refs + masks):**
+- Flash: max 3 obrazy total → `maxMaskLayers: 2`
+- Pro: max 14 obrazów total → `maxMaskLayers: 8`
+- fal.ai: maski nieobsługiwane
+
+**Model config (`models.ts`):**
+```typescript
+interface ModelCapabilities {
+  supportsMasks: boolean;     // Czy model obsługuje maski
+}
+interface ModelInfo {
+  maxMaskLayers?: number;     // Max warstw masek
+  maxTotalImages?: number;    // Max obrazów w jednym request
+}
+```
+
+**Helper:** `getAvailableMaskSlots(modelId, refCount)` — dynamicznie oblicza dostępne sloty na maski.
+
+**Backend (`GenerateRequest`):**
+```csharp
+public record MaskLayerData(string MaskImageBase64, string Instruction);
+// GenerateRequest rozszerzony o:
+List<MaskLayerData>? MaskLayers = null
+```
+
+**Walidacja (POST /api/generate):**
+- Max 8 masek per request
+- Każda maska: wymagane `Instruction` + `MaskImageBase64` (valid base64)
+- fal.ai modele odrzucane z maskami
+- Łączna liczba obrazów: `(source ? 1 : 0) + refs + masks <= maxTotalImages`
+
+**Frontend komponenty:**
+- `BrushEngine.ts` — silnik rysowania z Bezier interpolacją, brush/eraser
+- `MaskHistory.ts` — undo/redo per warstwa (20 kroków 1K, 10 kroków 4K)
+- `maskUtils.ts` — eksport PNG (alpha→binary), client-side compositing
+- `MaskCanvas.tsx` — dual canvas overlay (display + cursor), zoom-aware coordinates, pointer capture
+- Sekcja "Mask Layers" w InspectorPanel z kolorowymi indykatorami i mini-promptami
+
+**Wzajemne wykluczanie:** Mask mode i Compare mode nie mogą być aktywne jednocześnie.
 
 ---
 

@@ -80,6 +80,58 @@ Kliknij ponownie ikonę kolumn w pasku narzędzi.
 
 ---
 
+## Inpainting (Maski)
+
+Inpainting pozwala edytować **konkretne obszary** obrazu za pomocą masek. Każda maska ma własną instrukcję — Gemini edytuje tylko zamaskowane regiony, reszta pozostaje nienaruszona.
+
+### Wymagania
+- Model Gemini (Flash lub Pro)
+- Capture lub generacja jako źródło
+
+### Limity masek
+
+| Model | Max masek | Max obrazów total | Formuła |
+|-------|-----------|-------------------|---------|
+| Flash | 2 | 3 | source + refs + masks ≤ 3 |
+| Pro | 8 | 14 | source + refs + masks ≤ 14 |
+| fal.ai | 0 | - | Maski nieobsługiwane |
+
+Liczba dostępnych masek zmniejsza się dynamicznie gdy dodajesz referencje (i odwrotnie).
+
+### Jak używać
+
+1. Wybierz capture lub generację jako źródło
+2. W panelu Editor, sekcja **Mask Layers**, kliknij **Add** aby dodać warstwę maski
+3. Kliknij ikonę **pędzla** (Paintbrush) w toolbar canvasu aby wejść w tryb rysowania
+4. Narysuj maskę na obrazie:
+   - **Biały** = obszar do edycji
+   - **Przezroczysty** = zachowaj bez zmian
+5. Wpisz instrukcję dla maski, np. *"Replace with wooden texture"*
+6. Dodaj kolejne maski dla innych regionów (opcjonalnie)
+7. W głównym prompcie opisz ogólny kontekst
+8. Kliknij **Generate**
+
+### Narzędzia rysowania
+
+- **Brush** — rysowanie maski (pędzel okrągły, rozmiar 5-200px)
+- **Eraser** — wymazywanie fragmentów maski (przełączenie prawym przyciskiem lub przyciskiem w toolbarze)
+- **Undo/Redo** — Ctrl+Z / Ctrl+Shift+Z (20 kroków dla 1K, 10 dla 4K)
+- **Kolory warstw** — 8 automatycznie przypisanych kolorów (czerwony, niebieski, zielony, żółty, fioletowy, pomarańczowy, cyjan, różowy)
+
+### Interakcja z innymi trybami
+
+- Tryb masek i tryb porównania (Compare) **wzajemnie się wykluczają** — włączenie jednego wyłącza drugi
+- Maski są czyszczone przy zmianie wybranego elementu (capture/generacja)
+- Maski są automatycznie przycinane gdy zmiana modelu lub referencji zmniejsza dostępne sloty
+
+### Wskazówki
+
+- Opisuj instrukcje masek precyzyjnie — każda maska jest wysyłana do AI z numerem i opisem
+- W głównym prompcie opisz kontekst całej sceny, a w maskach — zmiany lokalne
+- Maski nie są zapisywane w bazie — istnieją tylko w bieżącej sesji edycji
+
+---
+
 ## Funkcje Zaawansowane
 
 ### Pan (Move Camera)
