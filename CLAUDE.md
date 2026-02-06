@@ -99,32 +99,34 @@ const FLUX_ASPECT_RATIOS: AspectRatioOption[] = [
 #### Light Mode
 | Token | Hex | Użycie |
 |-------|-----|--------|
-| text | `#4b5563` | Główny tekst |
-| background | `#f3f4f6` | Tło aplikacji |
-| primary | `#1f2937` | Nagłówki, CTA buttons |
-| secondary | `#48566a` | Tekst drugorzędny |
-| accent | `#9ca4b0` | Stonowane akcenty, ikony |
+| text | `#282828` | Główny tekst |
+| background | `#ededed` | Tło aplikacji |
+| primary | `#9e683c` | Nagłówki, CTA buttons (Bronze) |
+| secondary | `#90a3a9` | Tekst drugorzędny (Teal-Gray) |
+| accent | `#1f2f3c` | High-contrast akcenty (Navy) |
+| panel-bg | `#f5f5f5` | Panele boczne |
+| card-bg | `#f9f9f9` | Karty, tile |
+| card-hover | `#f0f0f0` | Stany hover |
+| border | `#d8d8d8` | Obramowania |
+| danger | `#774b4a` | Ostrzeżenia, destrukcyjne akcje |
 
 #### Dark Mode
 | Token | Hex | Użycie |
 |-------|-----|--------|
-| text | `#9ca6b4` | Główny tekst |
-| background | `#090a0c` | Tło aplikacji (prawie czarny) |
-| primary | `#c8d2e0` | Nagłówki, CTA buttons |
-| secondary | `#95a3b7` | Tekst drugorzędny |
-| accent | `#4f5763` | Stonowane akcenty, obramowania |
-
-#### Kolory pochodne (Dark Mode)
-| Token | Hex | Użycie |
-|-------|-----|--------|
-| panel-bg | `#0f1115` | Panele boczne |
-| card-bg | `#161a1f` | Karty, tile, overlay |
-| card-hover | `#1e2329` | Stany hover |
-| border | `#252a31` | Obramowania |
+| text | `#d1d1d1` | Główny tekst |
+| background | `#34312c` | Tło aplikacji (ciepła ciemność) |
+| primary | `#c28b62` | Nagłówki, CTA buttons (jasny Bronze) |
+| secondary | `#586b71` | Tekst drugorzędny (Slate) |
+| accent | `#c3d3e0` | Akcenty (Pale Blue) |
+| panel-bg | `#2b2925` | Panele boczne |
+| card-bg | `#3b3834` | Karty, tile, overlay |
+| card-hover | `#44413c` | Stany hover |
+| border | `#4a4740` | Obramowania |
+| danger | `#774b4a` | Ostrzeżenia, destrukcyjne akcje |
 
 ### Typografia
 
-**Czcionka:** Sawarabi Gothic (Google Fonts)
+**Czcionka:** Inter (Google Fonts)
 
 | Token | Rozmiar |
 |-------|---------|
@@ -140,6 +142,7 @@ const FLUX_ASPECT_RATIOS: AspectRatioOption[] = [
 
 **Wagi:**
 - `normal`: 400
+- `semibold`: 600
 - `bold`: 700
 
 ### Użycie w CSS
