@@ -556,8 +556,8 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
     // Truncate long base64 strings (mask images, source images) to keep JSON readable
     rawJson = System.Text.RegularExpressions.Regex.Replace(
         rawJson,
-        @"""([A-Za-z0-9+/=]{200})[A-Za-z0-9+/=]+""",
-        m => $"\"{m.Groups[1].Value}...[truncated]\"");
+        @"""([A-Za-z0-9+/=]{20})[A-Za-z0-9+/=]*([A-Za-z0-9+/=]{20})""",
+        m => $"\"{m.Groups[1].Value}...{m.Groups[2].Value}\"");
 
     var response = new
     {
@@ -595,6 +595,21 @@ api.MapGet("/generations/{id:guid}/masks", async (Guid id, AppDbContext db) =>
         return Results.Json(Array.Empty<object>(), jsonOptions);
 
     return Results.Json(request.MaskLayers, jsonOptions);
+});
+
+api.MapGet("/generations/{id:guid}/masks/{index:int}/image", async (Guid id, int index, AppDbContext db) =>
+{
+    var job = await db.Jobs.FirstOrDefaultAsync(j => j.ResultId == id);
+    if (job is null || job.Type != JobType.Generate)
+        return Results.NotFound();
+
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson,
+        new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
+    if (request?.MaskLayers is null || index < 0 || index >= request.MaskLayers.Count)
+        return Results.NotFound();
+
+    var bytes = Convert.FromBase64String(request.MaskLayers[index].MaskImageBase64);
+    return Results.Bytes(bytes, "image/png");
 });
 
 api.MapDelete("/generations/{id:guid}", async (Guid id, AppDbContext db) =>

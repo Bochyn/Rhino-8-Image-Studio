@@ -147,14 +147,7 @@ export function DebugModal({ isOpen, onClose, generationId }: DebugModalProps) {
                 <Section label={`Masks (${debugInfo.masks.length})`}>
                   <div className="space-y-1.5">
                     {debugInfo.masks.map((mask, i) => (
-                      <div key={i} className="bg-card rounded-lg p-2.5 border border-border">
-                        <p className="text-sm text-primary break-words">
-                          {mask.instruction || '(no instruction)'}
-                        </p>
-                        <p className="text-[10px] text-secondary mt-1 font-mono">
-                          #{mask.index} · {mask.imageSize}
-                        </p>
-                      </div>
+                      <MaskRow key={i} mask={mask} index={i} generationId={generationId!} />
                     ))}
                   </div>
                 </Section>
@@ -264,6 +257,39 @@ function ReferenceRow({ index, ref_ }: { index: number; ref_: { id: string; file
             className="w-16 h-16 object-cover rounded"
           />
           <p className="text-[10px] text-secondary mt-1 max-w-[120px] truncate">{ref_.fileName}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MaskRow({ mask, index, generationId }: {
+  mask: { index: number; instruction: string; imageSize: string };
+  index: number;
+  generationId: string;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative bg-card rounded-lg p-2.5 border border-border"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <p className="text-sm text-primary break-words">
+        {mask.instruction || '(no instruction)'}
+      </p>
+      <p className="text-[10px] text-secondary mt-1 font-mono">
+        #{mask.index} · {mask.imageSize}
+      </p>
+
+      {showTooltip && (
+        <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-card border border-border rounded-lg p-1.5 shadow-lg">
+          <img
+            src={`/api/generations/${generationId}/masks/${index}/image`}
+            alt={`Mask ${mask.index}`}
+            className="w-16 h-16 object-contain rounded bg-black"
+          />
         </div>
       )}
     </div>
