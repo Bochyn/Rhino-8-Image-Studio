@@ -179,6 +179,21 @@ public class JobProcessor : BackgroundService
             }
         }
 
+        // Load reference images from disk
+        List<byte[]>? referenceImages = null;
+        if (request.ReferenceImageIds is { Count: > 0 })
+        {
+            referenceImages = new List<byte[]>();
+            foreach (var refId in request.ReferenceImageIds.Take(4))
+            {
+                var refImage = await dbContext.ReferenceImages.FindAsync(new object[] { refId }, cancellationToken);
+                if (refImage != null)
+                {
+                    referenceImages.Add(await storage.ReadFileAsync(refImage.FilePath, cancellationToken));
+                }
+            }
+        }
+
         // Determine which provider to use based on model selection and available keys
         var hasGeminiKey = await secretStorage.HasSecretAsync("gemini_api_key");
         var hasFalKey = await secretStorage.HasSecretAsync("fal_api_key");
@@ -212,6 +227,7 @@ public class JobProcessor : BackgroundService
                 geminiResult = await geminiClient.GenerateImageAsync(
                     request.Prompt,
                     sourceImageData,
+                    referenceImages,
                     config,
                     cancellationToken);
             }
@@ -318,6 +334,7 @@ public class JobProcessor : BackgroundService
             var geminiResult = await geminiClient.EditImageAsync(
                 request.Prompt,
                 imageData,
+                null,  // referenceImages - not used in refine
                 new GeminiImageConfig(Model: GeminiModels.NanoBanana),
                 cancellationToken);
 

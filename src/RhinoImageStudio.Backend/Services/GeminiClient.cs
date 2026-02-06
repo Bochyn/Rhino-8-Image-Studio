@@ -9,8 +9,8 @@ namespace RhinoImageStudio.Backend.Services;
 /// </summary>
 public interface IGeminiClient
 {
-    Task<GeminiImageResult> GenerateImageAsync(string prompt, byte[]? sourceImage = null, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
-    Task<GeminiImageResult> EditImageAsync(string prompt, byte[] sourceImage, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
+    Task<GeminiImageResult> GenerateImageAsync(string prompt, byte[]? sourceImage = null, List<byte[]>? referenceImages = null, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
+    Task<GeminiImageResult> EditImageAsync(string prompt, byte[] sourceImage, List<byte[]>? referenceImages = null, GeminiImageConfig? config = null, CancellationToken cancellationToken = default);
 }
 
 public class GeminiClient : IGeminiClient
@@ -49,8 +49,9 @@ public class GeminiClient : IGeminiClient
     }
 
     public async Task<GeminiImageResult> GenerateImageAsync(
-        string prompt, 
-        byte[]? sourceImage = null, 
+        string prompt,
+        byte[]? sourceImage = null,
+        List<byte[]>? referenceImages = null,
         GeminiImageConfig? config = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,6 +72,22 @@ public class GeminiClient : IGeminiClient
                     data = Convert.ToBase64String(sourceImage)
                 }
             });
+        }
+
+        // Add reference images if provided
+        if (referenceImages != null)
+        {
+            foreach (var refImage in referenceImages)
+            {
+                parts.Add(new
+                {
+                    inline_data = new
+                    {
+                        mime_type = "image/png",
+                        data = Convert.ToBase64String(refImage)
+                    }
+                });
+            }
         }
 
         // Gemini image generation: responseModalities tells it to return images
@@ -101,6 +118,7 @@ public class GeminiClient : IGeminiClient
     public async Task<GeminiImageResult> EditImageAsync(
         string prompt,
         byte[] sourceImage,
+        List<byte[]>? referenceImages = null,
         GeminiImageConfig? config = null,
         CancellationToken cancellationToken = default)
     {
@@ -109,7 +127,7 @@ public class GeminiClient : IGeminiClient
             throw new ArgumentException("Source image is required for image editing", nameof(sourceImage));
         }
 
-        return await GenerateImageAsync(prompt, sourceImage, config, cancellationToken);
+        return await GenerateImageAsync(prompt, sourceImage, referenceImages, config, cancellationToken);
     }
 
     private async Task<GeminiImageResult> SendRequestAsync(

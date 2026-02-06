@@ -85,6 +85,16 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    db.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ReferenceImages (
+        Id TEXT PRIMARY KEY,
+        ProjectId TEXT NOT NULL,
+        OriginalFileName TEXT NOT NULL,
+        FilePath TEXT NOT NULL,
+        ThumbnailPath TEXT,
+        CreatedAt TEXT NOT NULL,
+        FOREIGN KEY (ProjectId) REFERENCES Projects(Id) ON DELETE CASCADE
+    )");
 }
 
 // Middleware
@@ -169,6 +179,7 @@ api.MapDelete("/projects/{id:guid}", async (Guid id, AppDbContext db, IStorageSe
     var project = await db.Projects
         .Include(s => s.Captures)
         .Include(s => s.Generations)
+        .Include(s => s.References)
         .FirstOrDefaultAsync(s => s.Id == id);
 
     if (project is null) return Results.NotFound();
@@ -186,6 +197,12 @@ api.MapDelete("/projects/{id:guid}", async (Guid id, AppDbContext db, IStorageSe
             await storage.DeleteFileAsync(generation.FilePath);
         if (generation.ThumbnailPath != null)
             await storage.DeleteFileAsync(generation.ThumbnailPath);
+    }
+    foreach (var reference in project.References)
+    {
+        await storage.DeleteFileAsync(reference.FilePath);
+        if (reference.ThumbnailPath != null)
+            await storage.DeleteFileAsync(reference.ThumbnailPath);
     }
 
     db.Projects.Remove(project);
@@ -284,6 +301,84 @@ api.MapDelete("/captures/{id:guid}", async (Guid id, AppDbContext db, IStorageSe
         await storage.DeleteFileAsync(capture.ThumbnailPath);
 
     db.Captures.Remove(capture);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
+// --- References ---
+api.MapGet("/projects/{projectId:guid}/references", async (Guid projectId, AppDbContext db) =>
+{
+    var references = await db.ReferenceImages
+        .Where(r => r.ProjectId == projectId)
+        .OrderByDescending(r => r.CreatedAt)
+        .Select(r => new ReferenceImageDto(
+            r.Id,
+            r.ProjectId,
+            r.OriginalFileName,
+            $"/images/{r.FilePath}",
+            r.ThumbnailPath != null ? $"/images/{r.ThumbnailPath}" : null,
+            r.CreatedAt
+        ))
+        .ToListAsync();
+
+    return Results.Ok(references);
+});
+
+api.MapPost("/projects/{projectId:guid}/references", async (Guid projectId, HttpRequest httpRequest, AppDbContext db, IStorageService storage) =>
+{
+    var form = await httpRequest.ReadFormAsync();
+    var file = form.Files.GetFile("image");
+
+    if (file is null)
+        return Results.BadRequest("Missing image file");
+
+    if (file.Length > 10 * 1024 * 1024)
+        return Results.BadRequest("File too large, max 10MB");
+
+    if (!file.ContentType.StartsWith("image/"))
+        return Results.BadRequest("File must be an image");
+
+    var existingCount = await db.ReferenceImages.CountAsync(r => r.ProjectId == projectId);
+    if (existingCount >= 4)
+        return Results.BadRequest("Maximum 4 reference images per project");
+
+    using var ms = new MemoryStream();
+    await file.CopyToAsync(ms);
+    var imageData = ms.ToArray();
+
+    var reference = new ReferenceImage
+    {
+        ProjectId = projectId,
+        OriginalFileName = Path.GetFileName(file.FileName) ?? "reference.png"
+    };
+
+    reference.FilePath = await storage.SaveReferenceAsync(reference.Id, imageData);
+    reference.ThumbnailPath = await storage.SaveThumbnailAsync(reference.Id, imageData);
+
+    db.ReferenceImages.Add(reference);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/references/{reference.Id}", new ReferenceImageDto(
+        reference.Id,
+        reference.ProjectId,
+        reference.OriginalFileName,
+        $"/images/{reference.FilePath}",
+        reference.ThumbnailPath != null ? $"/images/{reference.ThumbnailPath}" : null,
+        reference.CreatedAt
+    ));
+});
+
+api.MapDelete("/references/{id:guid}", async (Guid id, AppDbContext db, IStorageService storage) =>
+{
+    var reference = await db.ReferenceImages.FindAsync(id);
+    if (reference is null) return Results.NotFound();
+
+    await storage.DeleteFileAsync(reference.FilePath);
+    if (reference.ThumbnailPath != null)
+        await storage.DeleteFileAsync(reference.ThumbnailPath);
+
+    db.ReferenceImages.Remove(reference);
     await db.SaveChangesAsync();
 
     return Results.NoContent();
@@ -438,6 +533,9 @@ api.MapPost("/jobs/{id:guid}/cancel", async (Guid id, AppDbContext db, IFalAiCli
 // --- Pipeline Actions ---
 api.MapPost("/generate", async (GenerateRequest request, AppDbContext db, IJobQueue jobQueue) =>
 {
+    if (request.ReferenceImageIds != null && request.ReferenceImageIds.Count > 4)
+        return Results.BadRequest("Maximum 4 reference images allowed");
+
     var job = new Job
     {
         ProjectId = request.ProjectId,

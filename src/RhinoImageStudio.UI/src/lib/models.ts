@@ -87,6 +87,7 @@ export interface ModelCapabilities {
   supportsAspectRatio: boolean;
   supportsNumImages: boolean;
   supportsStrength: boolean; // For image-to-image/refine
+  supportsReferences: boolean;  // Whether model supports reference images
 }
 
 export interface ModelInfo {
@@ -99,6 +100,7 @@ export interface ModelInfo {
   // Model-specific options
   aspectRatios?: AspectRatioOption[];
   resolutions?: ResolutionOption[];
+  maxReferences?: number;  // Max reference images (undefined = 0)
 }
 
 export const MODELS: Record<string, ModelInfo> = {
@@ -114,9 +116,11 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsAspectRatio: true,
       supportsNumImages: true,
       supportsStrength: true,
+      supportsReferences: true,
     },
     aspectRatios: GEMINI_ASPECT_RATIOS,
     resolutions: GEMINI_FLASH_RESOLUTIONS,
+    maxReferences: 4,
   },
   'gemini-3-pro-image-preview': {
     id: 'gemini-3-pro-image-preview',
@@ -130,9 +134,11 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsAspectRatio: true,
       supportsNumImages: true,
       supportsStrength: true,
+      supportsReferences: true,
     },
     aspectRatios: GEMINI_ASPECT_RATIOS,
     resolutions: GEMINI_PRO_RESOLUTIONS,
+    maxReferences: 4,
   },
   'fal-ai/qwen-image-edit-2511-multiple-angles': {
     id: 'fal-ai/qwen-image-edit-2511-multiple-angles',
@@ -146,6 +152,7 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsAspectRatio: false,
       supportsNumImages: false,
       supportsStrength: false,
+      supportsReferences: false,
     },
   },
   'fal-ai/topaz/upscale/image': {
@@ -160,6 +167,7 @@ export const MODELS: Record<string, ModelInfo> = {
       supportsAspectRatio: false,
       supportsNumImages: false,
       supportsStrength: false,
+      supportsReferences: false,
     },
   },
 };

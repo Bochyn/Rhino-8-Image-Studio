@@ -11,8 +11,10 @@ public interface IStorageService
     string ThumbnailsPath { get; }
     string ExportsPath { get; }
     string TempPath { get; }
+    string ReferencesPath { get; }
 
     Task<string> SaveCaptureAsync(Guid captureId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default);
+    Task<string> SaveReferenceAsync(Guid referenceId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default);
     Task<string> SaveGenerationAsync(Guid generationId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default);
     Task<string> SaveThumbnailAsync(Guid id, byte[] imageData, CancellationToken cancellationToken = default);
     Task<byte[]> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
@@ -31,6 +33,7 @@ public class StorageService : IStorageService
     public string ThumbnailsPath => Path.Combine(BasePath, "thumbnails");
     public string ExportsPath => Path.Combine(BasePath, "exports");
     public string TempPath => Path.Combine(BasePath, "temp");
+    public string ReferencesPath => Path.Combine(BasePath, "references");
 
     public StorageService(ILogger<StorageService> logger, string? basePath = null)
     {
@@ -52,6 +55,7 @@ public class StorageService : IStorageService
         Directory.CreateDirectory(ThumbnailsPath);
         Directory.CreateDirectory(ExportsPath);
         Directory.CreateDirectory(TempPath);
+        Directory.CreateDirectory(ReferencesPath);
 
         _logger.LogInformation("Storage initialized at: {BasePath}", BasePath);
     }
@@ -64,6 +68,18 @@ public class StorageService : IStorageService
 
         await File.WriteAllBytesAsync(absolutePath, imageData, cancellationToken);
         _logger.LogDebug("Capture saved: {Path}", relativePath);
+
+        return relativePath;
+    }
+
+    public async Task<string> SaveReferenceAsync(Guid referenceId, byte[] imageData, string format = "png", CancellationToken cancellationToken = default)
+    {
+        var fileName = $"{referenceId}.{format}";
+        var relativePath = Path.Combine("references", fileName);
+        var absolutePath = Path.Combine(ReferencesPath, fileName);
+
+        await File.WriteAllBytesAsync(absolutePath, imageData, cancellationToken);
+        _logger.LogDebug("Reference saved: {Path}", relativePath);
 
         return relativePath;
     }

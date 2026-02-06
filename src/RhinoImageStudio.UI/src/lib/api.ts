@@ -1,4 +1,4 @@
-import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest } from './types';
+import { Project, Capture, Generation, CreateProjectRequest, GenerateRequest, ReferenceImage } from './types';
 
 const API_BASE = '/api';
 
@@ -92,6 +92,30 @@ export const api = {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete capture');
+    },
+  },
+  references: {
+    list: async (projectId: string): Promise<ReferenceImage[]> => {
+      const res = await fetch(`${API_BASE}/projects/${projectId}/references`);
+      if (!res.ok) throw new Error('Failed to fetch references');
+      return res.json();
+    },
+    upload: async (projectId: string, file: File): Promise<ReferenceImage> => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch(`${API_BASE}/projects/${projectId}/references`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'Failed to upload reference image');
+      }
+      return res.json();
+    },
+    delete: async (id: string): Promise<void> => {
+      const res = await fetch(`${API_BASE}/references/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete reference');
     },
   },
   generations: {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/Common/Button';
 import { CompareSlider } from '@/components/Studio/CompareSlider';
 import { SmoothProgress } from '@/components/Common/SmoothProgress';
-import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Columns, Download, Sparkles, ImageIcon, Save, ImagePlus } from 'lucide-react';
 import { Job } from '@/lib/types';
 
 interface CanvasStageProps {
@@ -11,6 +11,9 @@ interface CanvasStageProps {
   isProcessing: boolean;
   activeJob?: Job | null;
   onDownload?: () => void;
+  supportsReferences?: boolean;
+  hasReferences?: boolean;
+  onToggleReferences?: () => void;
 }
 
 export function CanvasStage({
@@ -18,7 +21,10 @@ export function CanvasStage({
   originalImage,
   isProcessing,
   activeJob,
-  onDownload
+  onDownload,
+  supportsReferences,
+  hasReferences,
+  onToggleReferences,
 }: CanvasStageProps) {
   const [zoom, setZoom] = useState(1);
   const [compareMode, setCompareMode] = useState(false);
@@ -82,6 +88,23 @@ export function CanvasStage({
           >
             <Columns className="h-4 w-4" />
           </Button>
+        )}
+
+        {supportsReferences && (
+          <>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Button
+              variant={hasReferences ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={onToggleReferences}
+              className={`h-8 w-8 rounded-full transition-colors ${
+                hasReferences ? 'bg-primary text-background hover:bg-primary/90' : 'hover:bg-primary/10 text-primary'
+              }`}
+              title="Reference Images"
+            >
+              <ImagePlus className="h-4 w-4" />
+            </Button>
+          </>
         )}
 
         {currentImage && (

@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Project, Capture, Generation } from '@/lib/types';
-import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS } from '@/lib/models';
+import { Project, Capture, Generation, ReferenceImage } from '@/lib/types';
+import { calculateDimensions, AllModelSettings, DEFAULT_ALL_SETTINGS, MODELS } from '@/lib/models';
 import { useJobs } from '@/hooks/useJobs';
 import { useRhino } from '@/hooks/useRhino';
 import { AssetsPanel } from '@/components/Studio/AssetsPanel';
 import { CanvasStage } from '@/components/Studio/CanvasStage';
 import { InspectorPanel } from '@/components/Studio/InspectorPanel';
+import { ReferencePanel } from '@/components/Studio/ReferencePanel';
 import { SettingsModal } from '@/components/Settings/SettingsModal';
 import { Button } from '@/components/Common/Button';
 import { ThemeSwitch } from '@/components/Common/ThemeSwitch';
@@ -34,19 +35,27 @@ export function StudioPage() {
   // Editor settings from InspectorPanel (for capture sync)
   const [editorSettings, setEditorSettings] = useState<AllModelSettings>(DEFAULT_ALL_SETTINGS);
   const [currentModelId, setCurrentModelId] = useState<string>('gemini-3-pro-image-preview');
+  const [references, setReferences] = useState<ReferenceImage[]>([]);
+  const [showReferences, setShowReferences] = useState(false);
+
+  const currentModelInfo = MODELS[currentModelId];
+  const supportsRefs = currentModelInfo?.capabilities.supportsReferences ?? false;
+  const maxRefs = currentModelInfo?.maxReferences ?? 0;
 
   // Load project data
   const loadData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const [projectData, capturesData, generationsData] = await Promise.all([
+      const [projectData, capturesData, generationsData, referencesData] = await Promise.all([
         api.projects.get(projectId),
         api.captures.list(projectId),
         api.generations.list(projectId),
+        api.references.list(projectId),
       ]);
       setProject(projectData);
       setCaptures(capturesData);
       setGenerations(generationsData);
+      setReferences(referencesData);
 
       // Auto-select logic if nothing selected
       if (!selectedItem) {
@@ -81,6 +90,13 @@ export function StudioPage() {
       loadData();
     }
   }, [jobs, loadData]);
+
+  // Hide reference panel when model doesn't support references
+  useEffect(() => {
+    if (!supportsRefs) {
+      setShowReferences(false);
+    }
+  }, [supportsRefs]);
 
   // Handle settings changes from InspectorPanel
   const handleSettingsChange = useCallback((settings: AllModelSettings, modelId: string) => {
@@ -175,6 +191,7 @@ export function StudioPage() {
           resolution: settings?.resolution,
           numImages: settings?.numImages ?? 1,
           outputFormat: settings?.outputFormat ?? 'Png',
+          referenceImageIds: supportsRefs ? references.map(r => r.id) : undefined,
         });
       }
       // Job will be tracked via SSE
@@ -298,15 +315,29 @@ export function StudioPage() {
           />
         </div>
 
-        {/* Center: Canvas */}
-        <div className="flex-1 min-w-0">
-          <CanvasStage
-            currentImage={getDisplayImage()}
-            originalImage={getOriginalImage()}
-            isProcessing={!!activeJob}
-            activeJob={activeJob}
-            onDownload={handleDownload}
-          />
+        {/* Center: Canvas + Reference Panel */}
+        <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div className="flex-1 min-h-0">
+            <CanvasStage
+              currentImage={getDisplayImage()}
+              originalImage={getOriginalImage()}
+              isProcessing={!!activeJob}
+              activeJob={activeJob}
+              onDownload={handleDownload}
+              supportsReferences={supportsRefs}
+              hasReferences={references.length > 0}
+              onToggleReferences={() => setShowReferences(!showReferences)}
+            />
+          </div>
+          {showReferences && supportsRefs && (
+            <ReferencePanel
+              projectId={projectId!}
+              references={references}
+              maxReferences={maxRefs}
+              onReferencesChange={setReferences}
+              onClose={() => setShowReferences(false)}
+            />
+          )}
         </div>
 
         {/* Right: Inspector */}

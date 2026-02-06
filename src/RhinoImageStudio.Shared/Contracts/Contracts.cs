@@ -61,7 +61,8 @@ public record GenerateRequest(
     string? AspectRatio = null,  // e.g., "1:1", "16:9", "4:3" - passed directly to Gemini API
     string? Resolution = null,   // e.g., "1K", "2K", "4K"
     int NumImages = 1,
-    string? OutputFormat = null  // e.g., "png", "jpeg"
+    string? OutputFormat = null,  // e.g., "png", "jpeg"
+    List<Guid>? ReferenceImageIds = null
 );
 
 public record RefineRequest(
@@ -106,6 +107,15 @@ public record GenerationDto(
     double? Zoom,
     string? ModelId,
     string? ParametersJson,
+    DateTime CreatedAt
+);
+
+public record ReferenceImageDto(
+    Guid Id,
+    Guid ProjectId,
+    string OriginalFileName,
+    string ImageUrl,
+    string? ThumbnailUrl,
     DateTime CreatedAt
 );
 

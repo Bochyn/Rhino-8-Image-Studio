@@ -18,6 +18,7 @@ Status: Development / Open Source Preparation
 - [x] **Dokumentacja**: Pełna struktura w folderze `/docs`.
 - [x] **UI Design System**: Custom blue-gray paleta + Sawarabi Gothic.
 - [x] **A/B Comparison**: Porównanie Before/After (viewport vs generacja) ze sliderem.
+- [x] **Reference Images**: Upload do 4 referencji (materiały, obiekty, styl) wysyłanych z promptem do Gemini.
 
 ### W trakcie / Planowane
 - [ ] Batch processing (wiele widoków naraz).
@@ -46,12 +47,12 @@ Status: Development / Open Source Preparation
 
 ### Dostępne modele generacji
 
-| Model | ID | Provider | Rozdzielczości | Domyślny | Koszt |
-|-------|----|----------|---------------|----------|-------|
-| **Gemini 2.5 Flash** | `gemini-2.5-flash-image` | Gemini API | 1K | Tak | ~$0.04/obraz |
-| **Gemini 3 Pro** | `gemini-3-pro-image-preview` | Gemini API | 1K, 2K, 4K | Nie | wyższy |
-| **Qwen Multi-Angle** | `fal-ai/qwen-image-edit-2511-multiple-angles` | fal.ai | - | (tryb Pan) | - |
-| **Topaz Upscale** | `fal-ai/topaz/upscale/image` | fal.ai | 2x/4x | (tryb Upscale) | - |
+| Model | ID | Provider | Rozdzielczości | Referencje | Domyślny | Koszt |
+|-------|----|----------|---------------|------------|----------|-------|
+| **Gemini 2.5 Flash** | `gemini-2.5-flash-image` | Gemini API | 1K | Max 4 | Tak | ~$0.04/obraz |
+| **Gemini 3 Pro** | `gemini-3-pro-image-preview` | Gemini API | 1K, 2K, 4K | Max 4 | Nie | wyższy |
+| **Qwen Multi-Angle** | `fal-ai/qwen-image-edit-2511-multiple-angles` | fal.ai | - | - | (tryb Pan) | - |
+| **Topaz Upscale** | `fal-ai/topaz/upscale/image` | fal.ai | 2x/4x | - | (tryb Upscale) | - |
 
 **Gemini 2.5 Flash** jest domyślnym modelem generacji (tani, szybki, do iteracji). **Gemini 3 Pro** służy do finalnych renderów w wyższych rozdzielczościach (2K/4K).
 
