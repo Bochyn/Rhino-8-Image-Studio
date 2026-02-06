@@ -524,7 +524,7 @@ api.MapGet("/generations/{id:guid}/debug", async (Guid id, AppDbContext db) =>
     if (job.Type != JobType.Generate)
         return Results.Json(new { jobType = job.Type.ToString(), info = "Debug details only available for Generate jobs. Raw request stored but uses different schema." }, jsonOptions);
 
-    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, jsonOptions);
+    var request = JsonSerializer.Deserialize<GenerateRequest>(job.RequestJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true, Converters = { new JsonStringEnumConverter() } });
     if (request is null) return Results.Problem("Failed to deserialize job request");
 
     var sourceType = request.SourceCaptureId != null ? "capture" : request.ParentGenerationId != null ? "generation" : (string?)null;
