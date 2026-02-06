@@ -101,10 +101,21 @@ interface ModelInfo {
 }
 ```
 
-### Gemini 3 Pro (aktualny)
-| Aspect Ratios | Resolutions |
-|---------------|-------------|
-| 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 | 1K (1024px), 2K (2048px), 4K (4096px) |
+### Dostępne Modele
+
+| Model | Provider | Rozdzielczości | Domyślny dla |
+|-------|----------|---------------|-------------|
+| **Gemini 2.5 Flash** | Gemini | 1K (1024px) | Generate, Refine |
+| **Gemini 3 Pro** | Gemini | 1K, 2K, 4K | - |
+| **Qwen Multi-Angle** | fal.ai | - | Multi-angle |
+| **Topaz Upscale** | fal.ai | - | Upscale |
+
+Oba modele Gemini obsługują te same aspect ratios: `1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9`.
+
+**Gemini 2.5 Flash** jest domyślnym modelem (tańszy, szybszy). Obsługuje tylko rozdzielczość 1K.
+**Gemini 3 Pro** wspiera wyższe rozdzielczości (2K, 4K) i parametr `imageSize` w API.
+
+> **Uwaga:** Backend (`GeminiClient.cs`) warunkuje parametr `imageSize` - wysyłany tylko dla modeli Pro. Flash nie wspiera tego parametru.
 
 ### Viewport Capture Synchronizacja
 
